@@ -4,9 +4,14 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -58,6 +63,16 @@ public final class ChatOverlayController {
     private boolean leaveDialogOpen = false;
     private String selfName = "";
     private String lastProgress = "";
+    private int lastImeBottom;
+    private final Handler imeKeep = new Handler(Looper.getMainLooper());
+    private final Runnable keepIme = new Runnable() {
+        @Override public void run() {
+            if (root == null || !root.isAttachedToWindow()) return;
+            showKeyboard();
+            layoutAboveKeyboard();
+            imeKeep.postDelayed(this, 1500);
+        }
+    };
 
     private ChatOverlayController(Activity activity) {
         this.activity = activity;
@@ -178,11 +193,16 @@ public final class ChatOverlayController {
         tailer = new ChatLogTailer(log, this::onLogLine);
         tailer.start();
         root.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-            @Override public void onViewAttachedToWindow(View v) {}
+            @Override public void onViewAttachedToWindow(View v) {
+                imeKeep.removeCallbacks(keepIme);
+                imeKeep.post(keepIme);
+            }
             @Override public void onViewDetachedFromWindow(View v) {
+                imeKeep.removeCallbacks(keepIme);
                 if (tailer != null) tailer.stop();
             }
         });
+        imeKeep.post(keepIme);
     }
 
     private void onLogLine(String line) {
@@ -355,33 +375,55 @@ public final class ChatOverlayController {
     private void bindKeyboardShare() {
         try {
             activity.getWindow().setSoftInputMode(
-                    WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-                            | WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+                    WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+                            | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
         } catch (Throwable ignored) {}
         View decor = activity.getWindow() != null ? activity.getWindow().getDecorView() : root;
         ViewCompat.setOnApplyWindowInsetsListener(decor, (v, insets) -> {
-            applyImeInsets(insets);
+            lastImeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
+            Insets sys = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            if (root != null) {
+                root.setPadding(sys.left, Math.max(sys.top, dp(8)), sys.right, 0);
+            }
+            layoutAboveKeyboard();
             return insets;
         });
+        View content = activity.findViewById(android.R.id.content);
+        if (content != null) {
+            content.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> layoutAboveKeyboard());
+        }
         if (input != null) {
-            input.setOnFocusChangeListener((v, has) -> {
-                if (has) showKeyboard();
-            });
+            input.setOnFocusChangeListener((v, has) -> showKeyboard());
             input.setOnClickListener(v -> showKeyboard());
         }
         root.post(() -> {
-            ViewCompat.requestApplyInsets(decor);
+            layoutAboveKeyboard();
             showKeyboard();
         });
     }
 
-    private void applyImeInsets(WindowInsetsCompat insets) {
+    /** Chat panel is the top half; keyboard is forced into the bottom half. */
+    private void layoutAboveKeyboard() {
         if (root == null) return;
-        Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
-        Insets sys = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-        int top = Math.max(sys.top, dp(12));
-        int bottom = Math.max(ime.bottom, sys.bottom);
-        root.setPadding(sys.left, top, sys.right, bottom);
+        View content = activity.findViewById(android.R.id.content);
+        int screenH = 0;
+        if (content != null) screenH = content.getHeight();
+        if (screenH < dp(200)) {
+            screenH = activity.getResources().getDisplayMetrics().heightPixels;
+        }
+        int reserve = lastImeBottom > dp(80) ? lastImeBottom : Math.round(screenH * 0.45f);
+        reserve = Math.max(reserve, dp(260));
+        reserve = Math.min(reserve, screenH / 2);
+        int chatH = Math.max(dp(220), screenH - reserve);
+        ViewGroup.LayoutParams lp = root.getLayoutParams();
+        if (!(lp instanceof FrameLayout.LayoutParams)) {
+            lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, chatH);
+        }
+        FrameLayout.LayoutParams fl = (FrameLayout.LayoutParams) lp;
+        fl.gravity = Gravity.TOP;
+        fl.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        fl.height = chatH;
+        root.setLayoutParams(fl);
         if (stickBottom && scroller != null) {
             scroller.post(() -> scroller.fullScroll(View.FOCUS_DOWN));
         }
@@ -391,8 +433,12 @@ public final class ChatOverlayController {
         if (input == null) return;
         input.requestFocus();
         try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.view.WindowInsetsController c = activity.getWindow().getInsetsController();
+                if (c != null) c.show(WindowInsets.Type.ime());
+            }
             InputMethodManager imm = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT);
+            if (imm != null) imm.showSoftInput(input, InputMethodManager.SHOW_FORCED);
         } catch (Throwable ignored) {}
     }
 

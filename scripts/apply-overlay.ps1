@@ -222,6 +222,26 @@ if ($gaText.Contains('import net.kdt.pojavlaunch.chatoverlay.ChatOverlayControll
     Write-Host 'Added ChatOnlyOptions import'
 }
 
+Patch-Once -Path $ga -Marker 'MC_CHAT_IME_FULLSCREEN' `
+    -Needle 'public class GameActivity extends BaseActivity implements ControlButtonMenuListener, EditorExitable, ServiceConnection {' `
+    -Insert @"
+public class GameActivity extends BaseActivity implements ControlButtonMenuListener, EditorExitable, ServiceConnection {
+    @Override
+    public boolean setFullscreen() {
+        // MC_CHAT_IME_FULLSCREEN
+        return false;
+    }
+"@
+
+Patch-Once -Path $ga -Marker 'MC_CHAT_IME' `
+    -Needle '        if(androidCompat)
+            getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);' `
+    -Insert @"
+        // MC_CHAT_IME
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+                | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+"@
+
 Patch-Once -Path $ga -Marker 'MC_CHAT_OVERLAY' `
     -Needle '        bindValues();' `
     -Insert @"

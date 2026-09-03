@@ -40,7 +40,7 @@ Remote: **https://github.com/FracturedZen/McMessenger**
 4. Sign in (Microsoft or offline), pick a Java version, type a **server address** (leave port blank to use SRV like PC), tap **Connect**.
 5. Minecraft menus stay hidden. Chat is portrait-friendly, like a messenger. The last server is remembered.
 6. **Menu** (top left) or the phone **Back** button disconnects and returns to the launcher. **Queue** sends `/queue simpcraft` (long-press to edit).
-7. Chat sits above the keyboard: latest messages and the input box stay on the top half, keyboard on the bottom.
+7. The keyboard stays open on the bottom half of the screen. Chat and the input box stay in the top half.
 
 After the lobby, **Queue** (`/queue simpcraft`) is a Velocity switch. If you get **Unknown host**, Menu then Connect again to `simpcraft.com` — do not type `simpcraft` in the address box.
 
