@@ -118,9 +118,20 @@ public final class ChatOverlayController {
             addLine(new ChatMessage("system", null, "Respawn sent."));
         });
 
-        addLine(new ChatMessage("system", null, "McMessenger overlay on. Use the game UI to join a server, then tap Cover. Or add --server HOST --port 25565 to instance game args."));
-        setCover(false);
-        setStatus("Join a server, then Cover");
+        String host = ChatServerPrefs.host(activity);
+        int port = ChatServerPrefs.port(activity);
+        if (host.isEmpty()) {
+            addLine(new ChatMessage("system", null, "No server set. Go back, type an address, then Connect."));
+            setStatus("No server");
+        } else {
+            addLine(new ChatMessage("system", null, "Joining " + host + ":" + port + " — Minecraft menus stay hidden."));
+            setStatus("Joining " + host + "…");
+        }
+        setCover(true);
+        View coverBtnView = root.findViewById(R.id.mc_chat_cover);
+        View peekBtn = root.findViewById(R.id.mc_chat_hide);
+        if (coverBtnView != null) coverBtnView.setVisibility(View.GONE);
+        if (peekBtn != null) peekBtn.setVisibility(View.GONE);
 
         File log = new File(Tools.DIR_GAME_HOME, "latestlog.txt");
         tailer = new ChatLogTailer(log, this::onLogLine);

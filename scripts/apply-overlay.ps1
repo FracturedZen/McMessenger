@@ -79,6 +79,7 @@ Get-ChildItem $resRoot -Directory | Where-Object { $_.Name -like 'values*' } | F
         'error_fatal' = 'McMessenger has unexpectedly crashed'
         'storage_required' = 'McMessenger requires external storage to be attached. Please reconnect it and restart the app.'
         'notification_permission_dialog_text' = 'McMessenger needs notification permission so game downloads can continue when you leave the app.'
+        'main_play' = 'Connect'
     }
     foreach ($name in $named.Keys) {
         $st2 = [regex]::Replace($st2, "<string name=`"$name`"[^>]*>[^<]*</string>", "<string name=`"$name`">$($named[$name])</string>")
@@ -255,6 +256,14 @@ Patch-Once -Path $gr -Marker 'MC_CHAT_ONLY_AGENT' `
         }
 "@
 
+Patch-Once -Path $gr -Marker 'MC_SERVER_ARGS' `
+    -Needle '        List<String> launchArgs = getMoJsonClientArgs(account, versionInfo, gamedir);' `
+    -Insert @"
+        List<String> launchArgs = getMoJsonClientArgs(account, versionInfo, gamedir);
+        // MC_SERVER_ARGS
+        net.kdt.pojavlaunch.chatoverlay.ChatServerLaunch.appendClientArgs(activity, launchArgs);
+"@
+
 $toolsJava = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/Tools.java'
 Patch-Once -Path $toolsJava -Marker 'MC_APP_NAME' `
     -Needle '    public static String APP_NAME = "PojavLauncher";' `
@@ -300,6 +309,31 @@ Patch-Once -Path $menuJava -Marker 'MC_CREDITS' `
             .setPositiveButton(android.R.string.ok, null)
             .show());
 "@
+
+$menuFrag = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/fragments/MainMenuFragment.java'
+Patch-Once -Path $menuFrag -Marker 'MC_SERVER_BAR' `
+    -Needle '        mPlayButton.setOnClickListener(v -> ExtraCore.setValue(ExtraConstants.LAUNCH_GAME, true));' `
+    -Insert @"
+        mPlayButton.setOnClickListener(v -> ExtraCore.setValue(ExtraConstants.LAUNCH_GAME, true));
+        // MC_SERVER_BAR
+        net.kdt.pojavlaunch.chatoverlay.ChatServerBar.install(view, mPlayButton);
+"@
+
+$manifest = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/AndroidManifest.xml'
+if (Test-Path $manifest) {
+    $mf = Get-Content -Path $manifest -Raw
+    if ($mf -notmatch 'game\.GameActivity[\s\S]{0,400}fullUser') {
+        $mf2 = [regex]::Replace(
+            $mf,
+            '(android:name="net\.kdt\.pojavlaunch\.game\.GameActivity"[\s\S]*?)android:screenOrientation="sensorLandscape"',
+            '${1}android:windowSoftInputMode="adjustResize"' + "`n            " + 'android:screenOrientation="fullUser"'
+        )
+        if ($mf2 -ne $mf) {
+            Set-Content -Path $manifest -Value $mf2 -NoNewline
+            Write-Host 'GameActivity allows portrait; keyboard adjustResize'
+        }
+    }
+}
 
 $iconJava = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/InstanceIconProvider.java'
 Patch-Once -Path $iconJava -Marker 'MC_DEFAULT_ICON' `
