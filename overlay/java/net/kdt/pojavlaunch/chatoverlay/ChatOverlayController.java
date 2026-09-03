@@ -51,6 +51,8 @@ public final class ChatOverlayController {
     private EditText input;
     private TextView status;
     private Button autoRespawnBtn;
+    private View deathBar;
+    private TextView deathText;
     private boolean cover = true;
     private boolean stickBottom = true;
     private boolean leaveDialogOpen = false;
@@ -96,10 +98,29 @@ public final class ChatOverlayController {
         input = root.findViewById(R.id.mc_chat_input);
         status = root.findViewById(R.id.mc_chat_status);
         autoRespawnBtn = root.findViewById(R.id.mc_chat_autorespawn);
+        deathBar = root.findViewById(R.id.mc_chat_death);
+        deathText = root.findViewById(R.id.mc_chat_death_text);
         Button sendBtn = root.findViewById(R.id.mc_chat_send);
         Button respawnNowBtn = root.findViewById(R.id.mc_chat_respawn_now);
+        Button deathRespawnBtn = root.findViewById(R.id.mc_chat_death_respawn);
 
         sActive = new WeakReference<>(this);
+        respawn.setListener(new ChatRespawn.Listener() {
+            @Override public void onDeath(boolean auto) {
+                if (auto) {
+                    setStatus("Dead · auto-respawn");
+                    addLine(new ChatMessage("system", null, "You died. Auto-respawn is on."));
+                } else {
+                    showDeathBanner("You died. Auto-respawn is off — tap Respawn.");
+                }
+            }
+            @Override public void onAlive() {
+                hideDeathBanner();
+            }
+            @Override public void onAutoFailed() {
+                showDeathBanner("Auto-respawn didn't work — tap Respawn.");
+            }
+        });
 
         SharedPreferences prefs = activity.getSharedPreferences("mcmessenger", 0);
         respawn.setAuto(prefs.getBoolean("auto_respawn", false));
@@ -127,11 +148,9 @@ public final class ChatOverlayController {
                     ? "Auto-respawn on. On death, Respawn is pressed for you."
                     : "Auto-respawn off. Use Respawn if you die."));
         });
-        respawnNowBtn.setOnClickListener(v -> {
-            respawn.respawnNow();
-            setStatus("Respawning…");
-            addLine(new ChatMessage("system", null, "Respawn sent."));
-        });
+        View.OnClickListener doRespawn = v -> clickRespawn();
+        respawnNowBtn.setOnClickListener(doRespawn);
+        if (deathRespawnBtn != null) deathRespawnBtn.setOnClickListener(doRespawn);
         Button queueBtn = root.findViewById(R.id.mc_chat_queue);
         if (queueBtn != null) {
             queueBtn.setOnClickListener(v -> sendQueueCmd());
@@ -206,8 +225,11 @@ public final class ChatOverlayController {
     }
 
     private void markConnected(String text) {
-        respawn.onAlive();
         String t = text == null ? "" : text.toLowerCase();
+        if (respawn.isDead()) {
+            setStatus("Dead · tap Respawn");
+            return;
+        }
         if (t.contains("queue")) setStatus("In queue");
         else setStatus("Connected");
     }
@@ -262,14 +284,35 @@ public final class ChatOverlayController {
 
     private void handleDeathLine(String text) {
         if (!ChatDeath.isSelfDeath(text, selfName)) return;
-        boolean wasDead = respawn.isDead();
         respawn.onDeath();
-        if (!wasDead) {
-            setStatus(respawn.isAuto() ? "Dead · auto-respawn" : "Dead · tap Respawn");
-            addLine(new ChatMessage("system", null, respawn.isAuto()
-                    ? "You died. Auto-respawn is on."
-                    : "You died. Tap Respawn, or turn on Auto-respawn."));
+    }
+
+    private void showDeathBanner(String message) {
+        boolean wasHidden = deathBar == null || deathBar.getVisibility() != View.VISIBLE;
+        setStatus("Dead · tap Respawn");
+        if (deathText != null) deathText.setText(message);
+        if (deathBar != null) deathBar.setVisibility(View.VISIBLE);
+        if (wasHidden) {
+            addLine(new ChatMessage("system", null, message));
+            Toast.makeText(activity, message, Toast.LENGTH_LONG).show();
+        } else if (deathText != null) {
+            addLine(new ChatMessage("system", null, message));
         }
+        if (stickBottom && scroller != null) {
+            scroller.post(() -> scroller.fullScroll(View.FOCUS_DOWN));
+        }
+    }
+
+    private void hideDeathBanner() {
+        if (deathBar != null) deathBar.setVisibility(View.GONE);
+    }
+
+    private void clickRespawn() {
+        respawn.respawnNow();
+        setStatus("Respawning…");
+        addLine(new ChatMessage("system", null, "Respawn sent."));
+        respawn.onAlive();
+        hideDeathBanner();
     }
 
     private void syncAutoRespawnButton() {

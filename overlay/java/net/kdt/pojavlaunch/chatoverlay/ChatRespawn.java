@@ -12,13 +12,24 @@ import net.kdt.pojavlaunch.CallbackBridge;
  * which still works if the GL surface is 16×16.
  */
 public final class ChatRespawn {
+    public interface Listener {
+        void onDeath(boolean auto);
+        void onAlive();
+        void onAutoFailed();
+    }
+
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Runnable tick = this::tick;
+    private Listener listener;
     private boolean auto;
     private boolean dead;
     private boolean pulsing;
     private String version = "";
     private int pulses;
+
+    public void setListener(Listener listener) {
+        this.listener = listener;
+    }
 
     public void setAuto(boolean auto) {
         this.auto = auto;
@@ -41,6 +52,7 @@ public final class ChatRespawn {
         dead = true;
         pulses = 0;
         ChatControlFile.write(auto, auto, version);
+        if (listener != null) listener.onDeath(auto);
         if (auto) startPulse();
     }
 
@@ -50,6 +62,7 @@ public final class ChatRespawn {
         pulses = 0;
         stopPulse();
         ChatControlFile.write(auto, false, version);
+        if (listener != null) listener.onAlive();
     }
 
     public boolean isDead() {
@@ -87,6 +100,7 @@ public final class ChatRespawn {
             stopPulse();
             return;
         }
+        if (auto && pulses == 10 && listener != null) listener.onAutoFailed();
         if (pulses > 20) {
             stopPulse();
             return;
