@@ -19,6 +19,64 @@ Copy-Item -Force (Join-Path $javaSrc '*.java') $javaDst
 Copy-Item -Force (Join-Path $resSrc '*.xml') $resDst
 Write-Host 'Copied overlay Java + layouts'
 
+$drawSrc = Join-Path $Root 'overlay\res\drawable'
+$drawDst = Join-Path $Mojo 'app_pojavlauncher\src\main\res\drawable'
+$valSrc = Join-Path $Root 'overlay\res\values'
+$valDst = Join-Path $Mojo 'app_pojavlauncher\src\main\res\values'
+New-Item -ItemType Directory -Force -Path $drawDst, $valDst | Out-Null
+Copy-Item -Force (Join-Path $drawSrc '*') $drawDst
+Copy-Item -Force (Join-Path $valSrc '*') $valDst
+Write-Host 'Copied melon theme drawables + colors'
+
+function Set-NamedColor([string]$XmlPath, [string]$Name, [string]$Hex) {
+    if (-not (Test-Path $XmlPath)) { return }
+    $t = Get-Content -Path $XmlPath -Raw
+    $t2 = [regex]::Replace($t, "<color name=`"$Name`">#[A-Fa-f0-9]+</color>", "<color name=`"$Name`">$Hex</color>")
+    if ($t2 -ne $t) {
+        Set-Content -Path $XmlPath -Value $t2 -NoNewline
+    }
+}
+
+$colors = Join-Path $Mojo 'app_pojavlauncher\src\main\res\values\colors.xml'
+Set-NamedColor $colors 'background_app' '#142810'
+Set-NamedColor $colors 'background_status_bar' '#1C3A18'
+Set-NamedColor $colors 'background_bottom_bar' '#1A3216'
+Set-NamedColor $colors 'background_overlay' '#2A4F24'
+Set-NamedColor $colors 'minebutton_color' '#E23B4A'
+Set-NamedColor $colors 'primary_text' '#F4FFE8'
+Set-NamedColor $colors 'secondary_text' '#B5D99A'
+Set-NamedColor $colors 'icon_outline_color' '#F4FFE8'
+Set-NamedColor $colors 'divider' '#2F6B28'
+$iconBg = Join-Path $Mojo 'app_pojavlauncher\src\main\res\values\ic_launcher_background.xml'
+Set-NamedColor $iconBg 'ic_launcher_background' '#1A3D14'
+Write-Host 'Applied melon palette to launcher colors'
+
+$strings = Join-Path $Mojo 'app_pojavlauncher\src\main\res\values\strings.xml'
+if (Test-Path $strings) {
+    $st = Get-Content -Path $strings -Raw
+    $st2 = [regex]::Replace($st, '<string name="app_short_name">[^<]*</string>', '<string name="app_short_name">McMessenger</string>')
+    if ($st2 -ne $st) {
+        Set-Content -Path $strings -Value $st2 -NoNewline
+        Write-Host 'Renamed launcher to McMessenger'
+    }
+}
+
+$adaptive = Join-Path $Mojo 'app_pojavlauncher\src\main\res\mipmap-anydpi-v26\ic_launcher.xml'
+if (Test-Path $adaptive) {
+    $ad = Get-Content -Path $adaptive -Raw
+    $ad2 = $ad.Replace('@mipmap/ic_launcher_foreground', '@drawable/mcmessenger_melon_block')
+    if ($ad2 -ne $ad) {
+        Set-Content -Path $adaptive -Value $ad2 -NoNewline
+        Write-Host 'Adaptive icon uses melon block'
+    }
+}
+$adaptiveRound = Join-Path $Mojo 'app_pojavlauncher\src\main\res\mipmap-anydpi-v26\ic_launcher_round.xml'
+if (Test-Path $adaptiveRound) {
+    $ad = Get-Content -Path $adaptiveRound -Raw
+    $ad2 = $ad.Replace('@mipmap/ic_launcher_foreground', '@drawable/mcmessenger_melon_block')
+    if ($ad2 -ne $ad) { Set-Content -Path $adaptiveRound -Value $ad2 -NoNewline }
+}
+
 if (Test-Path $agentJar) {
     New-Item -ItemType Directory -Force -Path $assetsDst | Out-Null
     Copy-Item -Force $agentJar (Join-Path $assetsDst 'mcmessenger-agent.jar')

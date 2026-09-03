@@ -3,7 +3,7 @@
     android:id="@+id/mc_chat_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F00B0D12"
+    android:background="@drawable/mcmessenger_app_bg"
     android:clickable="true"
     android:focusable="true"
     android:orientation="vertical"
@@ -16,12 +16,20 @@
         android:paddingHorizontal="12dp"
         android:paddingBottom="8dp">
 
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="@null"
+            android:src="@drawable/mcmessenger_melon_slice"
+            android:scaleType="fitCenter" />
+
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="McMessenger"
-            android:textColor="#E8EDF5"
+            android:textColor="#F4FFE8"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -31,24 +39,29 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:text="…"
-            android:textColor="#8B93A7"
+            android:textColor="#C8E090"
             android:textSize="12sp" />
 
         <Button
             android:id="@+id/mc_chat_cover"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
+            android:background="@drawable/mcmessenger_button"
             android:minWidth="0dp"
             android:text="Game"
-            android:textAllCaps="false" />
+            android:textAllCaps="false"
+            android:textColor="#F4FFE8" />
 
         <Button
             android:id="@+id/mc_chat_hide"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/mcmessenger_button"
             android:minWidth="0dp"
             android:text="Peek"
-            android:textAllCaps="false" />
+            android:textAllCaps="false"
+            android:textColor="#F4FFE8" />
     </LinearLayout>
 
     <LinearLayout
@@ -63,15 +76,20 @@
             android:layout_width="0dp"
             android:layout_height="36dp"
             android:layout_weight="1"
+            android:background="@drawable/mcmessenger_button"
             android:text="Auto-respawn: off"
-            android:textAllCaps="false" />
+            android:textAllCaps="false"
+            android:textColor="#F4FFE8" />
 
         <Button
             android:id="@+id/mc_chat_respawn_now"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/mcmessenger_button"
             android:text="Respawn"
-            android:textAllCaps="false" />
+            android:textAllCaps="false"
+            android:textColor="#F4FFE8" />
     </LinearLayout>
 
     <ScrollView
@@ -100,20 +118,24 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:background="@drawable/mcmessenger_input"
             android:hint="Message"
             android:imeOptions="actionSend"
             android:importantForAutofill="no"
             android:inputType="text"
             android:maxLength="256"
-            android:textColor="#E8EDF5"
-            android:textColorHint="#8B93A7"
+            android:textColor="#F4FFE8"
+            android:textColorHint="#A8D48A"
             android:textSize="16sp" />
 
         <Button
             android:id="@+id/mc_chat_send"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/mcmessenger_button"
             android:text="Send"
-            android:textAllCaps="false" />
+            android:textAllCaps="false"
+            android:textColor="#F4FFE8" />
     </LinearLayout>
 </LinearLayout>

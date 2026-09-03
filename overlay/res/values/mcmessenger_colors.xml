@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="melon_rind_dark">#142810</color>
+    <color name="melon_rind">#2F6B28</color>
+    <color name="melon_rind_light">#5A9A3A</color>
+    <color name="melon_flesh">#E23B4A</color>
+    <color name="melon_flesh_dark">#9B1E28</color>
+    <color name="melon_pith">#C8E090</color>
+    <color name="melon_seed">#1A1208</color>
+    <color name="melon_cream">#F4FFE8</color>
+</resources>

@@ -192,7 +192,7 @@ public final class ChatOverlayController {
 
     private void addLine(ChatMessage msg) {
         TextView tv = new TextView(activity);
-        tv.setTextColor(Color.parseColor("#E8EDF5"));
+        tv.setTextColor(Color.parseColor("#F4FFE8"));
         tv.setTextSize(15f);
         tv.setPadding(8, 6, 8, 6);
         String prefix;
@@ -200,8 +200,8 @@ public final class ChatOverlayController {
         else if ("player".equals(msg.kind) && msg.username != null) prefix = msg.username + ": ";
         else prefix = "System: ";
         tv.setText(prefix + msg.text);
-        if ("system".equals(msg.kind)) tv.setTextColor(Color.parseColor("#8B93A7"));
-        if ("you".equals(msg.kind)) tv.setTextColor(Color.parseColor("#3DD68C"));
+        if ("system".equals(msg.kind)) tv.setTextColor(Color.parseColor("#C8E090"));
+        if ("you".equals(msg.kind)) tv.setTextColor(Color.parseColor("#FF8A96"));
         transcript.addView(tv);
         if (stickBottom) {
             scroller.post(() -> scroller.fullScroll(View.FOCUS_DOWN));
@@ -210,7 +210,8 @@ public final class ChatOverlayController {
 
     private void setCover(boolean on) {
         cover = on;
-        root.setBackgroundColor(on ? Color.parseColor("#F00B0D12") : Color.TRANSPARENT);
+        if (on) root.setBackgroundResource(R.drawable.mcmessenger_app_bg);
+        else root.setBackgroundColor(Color.TRANSPARENT);
         coverBtn.setText(on ? "Game" : "Cover");
         root.setClickable(on);
         scroller.setVisibility(on ? View.VISIBLE : View.GONE);
