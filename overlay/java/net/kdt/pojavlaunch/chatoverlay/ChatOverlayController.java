@@ -1,12 +1,14 @@
 package net.kdt.pojavlaunch.chatoverlay;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -16,6 +18,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import net.kdt.pojavlaunch.Tools;
 import net.kdt.pojavlaunch.authenticator.accounts.Account;
@@ -46,10 +51,7 @@ public final class ChatOverlayController {
     private EditText input;
     private TextView status;
     private Button autoRespawnBtn;
-    private Button gameBtn;
-    private View actionRow;
-    private View composerRow;
-    private boolean cover = false;
+    private boolean cover = true;
     private boolean stickBottom = true;
     private boolean leaveDialogOpen = false;
     private String selfName = "";
@@ -94,9 +96,6 @@ public final class ChatOverlayController {
         input = root.findViewById(R.id.mc_chat_input);
         status = root.findViewById(R.id.mc_chat_status);
         autoRespawnBtn = root.findViewById(R.id.mc_chat_autorespawn);
-        gameBtn = root.findViewById(R.id.mc_chat_game);
-        actionRow = root.findViewById(R.id.mc_chat_actions);
-        composerRow = root.findViewById(R.id.mc_chat_composer);
         Button sendBtn = root.findViewById(R.id.mc_chat_send);
         Button respawnNowBtn = root.findViewById(R.id.mc_chat_respawn_now);
 
@@ -118,7 +117,7 @@ public final class ChatOverlayController {
         });
         View leaveBtn = root.findViewById(R.id.mc_chat_leave);
         if (leaveBtn != null) leaveBtn.setOnClickListener(v -> leaveToMenu());
-        if (gameBtn != null) gameBtn.setOnClickListener(v -> setCover(!cover));
+        bindKeyboardShare();
         autoRespawnBtn.setOnClickListener(v -> {
             boolean next = !respawn.isAuto();
             respawn.setAuto(next);
@@ -151,7 +150,7 @@ public final class ChatOverlayController {
             String dest = port == null ? host : (host + ":" + port);
             addLine(new ChatMessage("system", null, "Joining " + dest + " (SRV like PC if no port). Queue sends "
                     + ChatServerPrefs.queueCmd(activity) + " — long-press Queue to change (simpcraft is /queue simpcraft)."));
-            addLine(new ChatMessage("system", null, "Menu or Back returns to the launcher. If it sits on Connected with no chat, tap Game to see the Minecraft screen (resource pack / queue / click-to-join)."));
+            addLine(new ChatMessage("system", null, "Menu or Back returns to the launcher."));
             setStatus("Joining " + dest + "…");
         }
         setCover(true);
@@ -196,7 +195,7 @@ public final class ChatOverlayController {
                             + ". Do not put the queue name in the address box."));
         }
         if (low.contains("resource pack") || low.contains("resourcepack")) {
-            setStatus("Resource pack — tap Game");
+            setStatus("Resource pack");
         }
         if (low.contains("joined the game") || low.contains("logged in")
                 || (low.contains("multiplayer") && low.contains("joined"))) {
@@ -241,6 +240,7 @@ public final class ChatOverlayController {
         if (!sender.send(cmd)) return;
         addLine(new ChatMessage("you", "You", cmd));
         setStatus("Sent " + cmd);
+        input.postDelayed(this::showKeyboard, 400);
     }
 
     private void editQueueCmd() {
@@ -288,6 +288,7 @@ public final class ChatOverlayController {
         if (!sender.send(text)) return;
         addLine(new ChatMessage("you", "You", text.trim()));
         input.setText("");
+        input.postDelayed(this::showKeyboard, 400);
     }
 
     private void addLine(ChatMessage msg) {
@@ -308,23 +309,60 @@ public final class ChatOverlayController {
         }
     }
 
+    private void bindKeyboardShare() {
+        try {
+            activity.getWindow().setSoftInputMode(
+                    WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                            | WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        } catch (Throwable ignored) {}
+        View decor = activity.getWindow() != null ? activity.getWindow().getDecorView() : root;
+        ViewCompat.setOnApplyWindowInsetsListener(decor, (v, insets) -> {
+            applyImeInsets(insets);
+            return insets;
+        });
+        if (input != null) {
+            input.setOnFocusChangeListener((v, has) -> {
+                if (has) showKeyboard();
+            });
+            input.setOnClickListener(v -> showKeyboard());
+        }
+        root.post(() -> {
+            ViewCompat.requestApplyInsets(decor);
+            showKeyboard();
+        });
+    }
+
+    private void applyImeInsets(WindowInsetsCompat insets) {
+        if (root == null) return;
+        Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+        Insets sys = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+        int top = Math.max(sys.top, dp(12));
+        int bottom = Math.max(ime.bottom, sys.bottom);
+        root.setPadding(sys.left, top, sys.right, bottom);
+        if (stickBottom && scroller != null) {
+            scroller.post(() -> scroller.fullScroll(View.FOCUS_DOWN));
+        }
+    }
+
+    private void showKeyboard() {
+        if (input == null) return;
+        input.requestFocus();
+        try {
+            InputMethodManager imm = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT);
+        } catch (Throwable ignored) {}
+    }
+
+    private int dp(int dps) {
+        float d = activity.getResources().getDisplayMetrics().density;
+        return Math.round(dps * d);
+    }
+
     private void setCover(boolean on) {
         cover = on;
-        ViewGroup.LayoutParams lp = root.getLayoutParams();
-        if (lp instanceof FrameLayout.LayoutParams) {
-            FrameLayout.LayoutParams fl = (FrameLayout.LayoutParams) lp;
-            fl.width = ViewGroup.LayoutParams.MATCH_PARENT;
-            fl.height = on ? ViewGroup.LayoutParams.MATCH_PARENT : ViewGroup.LayoutParams.WRAP_CONTENT;
-            fl.gravity = Gravity.TOP;
-            root.setLayoutParams(fl);
-        }
         if (on) root.setBackgroundResource(R.drawable.mcmessenger_app_bg);
-        else root.setBackgroundColor(Color.parseColor("#E0142810"));
+        else root.setBackgroundColor(Color.TRANSPARENT);
         root.setClickable(on);
-        if (scroller != null) scroller.setVisibility(on ? View.VISIBLE : View.GONE);
-        if (actionRow != null) actionRow.setVisibility(on ? View.VISIBLE : View.GONE);
-        if (composerRow != null) composerRow.setVisibility(on ? View.VISIBLE : View.GONE);
-        if (gameBtn != null) gameBtn.setText(on ? "Game" : "Chat");
         hideStockControls(on);
         if (on) ChatOnlySurface.shrink(activity);
         else ChatOnlySurface.restore(activity);
@@ -348,10 +386,6 @@ public final class ChatOverlayController {
     public static boolean onSystemBack() {
         ChatOverlayController c = sActive != null ? sActive.get() : null;
         if (c == null) return false;
-        if (!c.cover) {
-            c.activity.runOnUiThread(() -> c.setCover(true));
-            return true;
-        }
         c.leaveToMenu();
         return true;
     }
