@@ -34,7 +34,7 @@ Remote: **https://github.com/FracturedZen/McMessenger**
 
 ## Install
 
-1. Download the latest **mcmessenger-debug-apk** artifact from Actions (run titled with the latest commit).
+1. Download the latest **McMessenger-debug** artifact from Actions. The file inside is `McMessenger-debug.apk`.
 2. Uninstall any older debug build that still used the Mojo package id (`git.artdeell.mjlaunch.debug`) so you do not have two icons.
 3. Sideload the `.apk`. Home screen name is **McMessenger**.
 4. Sign in (Microsoft or offline), pick a Java version, Play. The chat overlay is on top after the client boots.

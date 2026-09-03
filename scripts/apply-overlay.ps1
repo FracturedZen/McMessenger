@@ -98,6 +98,33 @@ if (Test-Path $appGradle) {
     }
 }
 
+# Gradle's default file is app_pojavlauncher-full-debug.apk (module name). Rename the output.
+$appGradle = Join-RepoPath $Mojo 'app_pojavlauncher/build.gradle'
+if ((Test-Path $appGradle) -and -not ((Get-Content -Path $appGradle -Raw).Contains('MC_APK_NAME'))) {
+    $bg = (Get-Content -Path $appGradle -Raw).Replace("`r`n", "`n")
+    $needle = "    buildFeatures {`n        buildConfig true`n    }`n}"
+    $insert = @'
+    buildFeatures {
+        buildConfig true
+    }
+}
+
+// MC_APK_NAME
+android.applicationVariants.configureEach { variant ->
+    variant.outputs.configureEach { output ->
+        output.outputFileName = "McMessenger-${variant.buildType.name}.apk"
+    }
+}
+'@
+    $insert = $insert.Replace("`r`n", "`n")
+    if ($bg.Contains($needle)) {
+        Set-Content -Path $appGradle -Value $bg.Replace($needle, $insert) -NoNewline
+        Write-Host 'APK output file is McMessenger-debug.apk'
+    } else {
+        Write-Host 'WARNING: could not set APK outputFileName (CI still copies McMessenger-debug.apk)'
+    }
+}
+
 $adaptive = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'
 if (Test-Path $adaptive) {
     $ad = Get-Content -Path $adaptive -Raw

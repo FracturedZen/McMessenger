@@ -100,8 +100,17 @@ jobs:
         working-directory: mojo-src
         run: gradle :app_pojavlauncher:assembleFullDebug --no-daemon --stacktrace
 
+      - name: Name APK McMessenger-debug.apk
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          apk="$(find mojo-src/app_pojavlauncher/build/outputs/apk -name '*.apk' | head -n 1)"
+          test -n "$apk"
+          cp "$apk" out/McMessenger-debug.apk
+          ls -lh out/McMessenger-debug.apk
+
       - uses: actions/upload-artifact@v4
         with:
-          name: mcmessenger-debug-apk
-          path: mojo-src/app_pojavlauncher/build/outputs/apk/**/*.apk
+          name: McMessenger-debug
+          path: out/McMessenger-debug.apk
           if-no-files-found: error
