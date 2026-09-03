@@ -1,0 +1,3 @@
+Premain-Class: com.phonkalphabet.mcchat.agent.AgentMain
+Can-Redefine-Classes: true
+Can-Retransform-Classes: true

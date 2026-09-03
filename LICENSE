@@ -1,0 +1,11 @@
+This overlay is licensed under the GNU Lesser General Public License v3.0,
+the same license as MojoLauncher.
+
+MojoLauncher (based on PojavLauncher) remains copyright its authors.
+See https://github.com/MojoLauncher/MojoLauncher/blob/v3_openjdk/LICENSE
+
+A complete copy of GNU LGPLv3 is included in the cloned tree at
+mojo-src/LICENSE after you run scripts/clone-mojo.ps1.
+
+You must keep that license and copyright notices when you distribute a
+modified APK.

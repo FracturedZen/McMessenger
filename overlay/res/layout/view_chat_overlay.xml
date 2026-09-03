@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/mc_chat_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F00B0D12"
+    android:clickable="true"
+    android:focusable="true"
+    android:orientation="vertical"
+    android:paddingTop="28dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="MC Chat"
+            android:textColor="#E8EDF5"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/mc_chat_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="…"
+            android:textColor="#8B93A7"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/mc_chat_cover"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:minWidth="0dp"
+            android:text="Game"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/mc_chat_hide"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:minWidth="0dp"
+            android:text="Peek"
+            android:textAllCaps="false" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="6dp">
+
+        <Button
+            android:id="@+id/mc_chat_autorespawn"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="Auto-respawn: off"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/mc_chat_respawn_now"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Respawn"
+            android:textAllCaps="false" />
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/mc_chat_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:paddingHorizontal="10dp">
+
+        <LinearLayout
+            android:id="@+id/mc_chat_transcript"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="10dp">
+
+        <EditText
+            android:id="@+id/mc_chat_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Message"
+            android:imeOptions="actionSend"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:maxLength="256"
+            android:textColor="#E8EDF5"
+            android:textColorHint="#8B93A7"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/mc_chat_send"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Send"
+            android:textAllCaps="false" />
+    </LinearLayout>
+</LinearLayout>

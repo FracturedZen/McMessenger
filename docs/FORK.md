@@ -1,0 +1,94 @@
+# Fork notes
+
+Upstream: https://github.com/MojoLauncher/MojoLauncher (`v3_openjdk`)
+License: GNU LGPLv3 (see upstream `LICENSE`)
+
+## Why a fork instead of "use Mojo from Capacitor"
+
+Mojo is the JVM + renderer. Capacitor cannot speak Minecraft TCP. Opening the Play Store Mojo app also cannot feed this overlay its login. The only legitimate way to put a chat GUI on the real client is to **change the launcher** that owns the game process.
+
+## What we patch
+
+`scripts/apply-overlay.ps1` copies files into a local clone (`mojo-src/`) and inserts one call in `GameActivity.initLayout`:
+
+```java
+ChatOverlayController.install(this);
+```
+
+New files (ours):
+
+- `net.kdt.pojavlaunch.chatoverlay.*`
+- `res/layout/view_chat_overlay.xml`
+- `res/layout/item_chat_line.xml`
+
+We do not replace Mojo's authenticator. Microsoft device-code / local accounts stay theirs.
+
+## Side-by-side with Play Store Mojo
+
+Default `applicationId` in `app_pojavlauncher/build.gradle` is `git.artdeell.mjlaunch` (debug suffix `.debug`). Installing this APK **replaces** Play Store Mojo.
+
+To keep both, after clone, before build, change:
+
+```
+applicationId "git.artdeell.mjlaunch"
+```
+
+to:
+
+```
+applicationId "com.phonkalphabet.mcchatmojo"
+```
+
+## Re-applying after `git pull`
+
+```powershell
+cd mojo-src
+git pull
+cd ..
+.\scripts\apply-overlay.ps1
+.\scripts\build.ps1
+```
+
+The install marker `// MC_CHAT_OVERLAY` is idempotent. Overlay Java/XML are overwritten from `overlay/`.
+
+## Chat-only load cut (not a silent world cheat)
+
+The overlay does not just paint over the world. Before the JVM starts we rewrite `options.txt`:
+
+- `renderDistance:2` / `simulationDistance:2` — the client **tells the server** its view-distance, so vanilla ships a 5×5 chunk window instead of a 25×25. That is the same Video Settings slider, not a hidden packet.
+- Audio categories 0, cheap graphics, max 10 FPS, no clouds/particles/shadows.
+
+When Cover is on, the GL backbuffer is shrunk to 16×16 so we are not shading a full-screen frame nobody sees.
+
+After a 45s login grace, a **javaagent** (`chat-only-agent.jar`) drops inbound Netty **ByteBuf** frames larger than 4 KiB. Chunk and light payloads are large; chat, keepalive, and teleport confirms are small and still flow. We do **not** skip keepalives, teleport confirms, or movement acks. We do **not** hide you from the tab list.
+
+The agent is JVM bytecode shipped as an asset and passed as `-javaagent` to Minecraft’s JRE. It is not a Fabric/Forge mod.
+
+## Auto-respawn
+
+The overlay has **Auto-respawn: on/off** (saved) and a one-shot **Respawn** button.
+
+On death (chat/log: “You died”, “was slain…”, etc. for your username):
+
+1. Enter/Space — vanilla death screen focuses Respawn.
+2. The agent sends play `client_command` / PERFORM_RESPAWN (action 0) using a small version→packet-id table. Wrong ids are skipped; Enter still runs.
+
+This is the same packet the Respawn button sends. It is not a ghost/killaura hook.
+
+Build it with JDK 17:
+
+```powershell
+.\scripts\build-agent.ps1
+.\scripts\apply-overlay.ps1
+```
+
+## Limits
+
+- Incoming chat depends on the client writing chat to `latestlog.txt`. Vanilla does. Some clients mute it.
+- Send injects **T**, then characters, then **Enter**. If the player rebound chat off T, change `ChatSender.CHAT_ANDROID_KEYCODE`.
+- Cover mode blocks touch to the world. Use **Game** to click menus (title screen, inventory).
+- 1.19+ online-mode signed chat still works because we are the real client, not Mineflayer.
+
+## Mineflayer later
+
+PC headless relay remains `C:\Users\Z\Desktop\mc-chat-relay`. Use it when the phone should not run a JVM.

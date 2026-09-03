@@ -1,0 +1,13 @@
+mojo-src/
+overlay/agent/build/
+overlay/agent/lib/
+*.apk
+*.ap_
+*.aab
+.idea/
+.gradle/
+local.properties
+*.iml
+Thumbs.db
+.DS_Store
+.mcchat-control
