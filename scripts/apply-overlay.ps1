@@ -69,7 +69,13 @@ Get-ChildItem $resRoot -Directory | Where-Object { $_.Name -like 'values*' } | F
     if (-not (Test-Path $sf)) { return }
     $st = Get-Content -Path $sf -Raw
     $st2 = [regex]::Replace($st, '<string name="app_short_name">[^<]*</string>', '<string name="app_short_name">McMessenger</string>')
+    $st2 = [regex]::Replace($st2, '<string name="mcl_tab_wiki">[^<]*</string>', '<string name="mcl_tab_wiki">Credits</string>')
+    $st2 = [regex]::Replace($st2, '<string name="mcl_button_social_media">[^<]*</string>', '<string name="mcl_button_social_media">GitHub</string>')
+    $st2 = [regex]::Replace($st2, '<string name="social_media_invite"[^>]*>[^<]*</string>', '<string name="social_media_invite" translatable="false">https://github.com/FracturedZen/McMessenger</string>')
     $st2 = $st2.Replace('MJLauncher', 'McMessenger').Replace('MojoLauncher', 'McMessenger').Replace('PojavLauncher', 'McMessenger')
+    $st2 = $st2.Replace('MJ Foreground Service', 'McMessenger')
+    $st2 = $st2.Replace('https://mojolauncher.ru', 'https://github.com/FracturedZen/McMessenger')
+    $st2 = $st2.Replace('https://t.me/MojoLauncher', 'https://github.com/FracturedZen/McMessenger')
     if ($st2 -ne $st) {
         Set-Content -Path $sf -Value $st2 -NoNewline
     }
@@ -106,6 +112,22 @@ if (Test-Path $adaptiveRound) {
     $ad = Get-Content -Path $adaptiveRound -Raw
     $ad2 = $ad.Replace('@mipmap/ic_launcher_foreground', '@drawable/mcmessenger_melon_block')
     if ($ad2 -ne $ad) { Set-Content -Path $adaptiveRound -Value $ad2 -NoNewline }
+}
+
+$melonPng = Join-RepoPath $Root 'overlay/res/drawable/mcmessenger_melon_block.png'
+if (Test-Path $melonPng) {
+    foreach ($dens in @('mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi')) {
+        $mip = Join-RepoPath $Mojo "app_pojavlauncher/src/main/res/mipmap-$dens"
+        if (-not (Test-Path $mip)) { continue }
+        foreach ($leaf in @('ic_launcher.webp', 'ic_launcher_round.webp', 'ic_launcher_foreground.webp')) {
+            $old = Join-Path $mip $leaf
+            if (Test-Path $old) { Remove-Item -Force $old }
+        }
+        Copy-Item -Force $melonPng (Join-Path $mip 'ic_launcher.png')
+        Copy-Item -Force $melonPng (Join-Path $mip 'ic_launcher_round.png')
+        Copy-Item -Force $melonPng (Join-Path $mip 'ic_launcher_foreground.png')
+    }
+    Write-Host 'Replaced density launcher icons with melon block'
 }
 
 if (Test-Path $agentJar) {
@@ -217,6 +239,33 @@ Patch-Once -Path $ga -Marker 'MC_WINDOW_TITLE' `
     -Insert @"
             // MC_WINDOW_TITLE
             setTitle("McMessenger (" + version + ")");
+"@
+
+Patch-Once -Path $toolsJava -Marker 'MC_URL_HOME' `
+    -Needle '    public static final String URL_HOME = "https://mojolauncher.ru";' `
+    -Insert @"
+    // MC_URL_HOME
+    public static final String URL_HOME = "https://github.com/FracturedZen/McMessenger";
+"@
+
+$menuJava = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/fragments/MainMenuFragment.java'
+Patch-Once -Path $menuJava -Marker 'MC_CREDITS' `
+    -Needle '        mNewsButton.setOnClickListener(v -> Tools.openURL(requireActivity(), Tools.URL_HOME));' `
+    -Insert @"
+        // MC_CREDITS
+        mNewsButton.setOnClickListener(v -> new androidx.appcompat.app.AlertDialog.Builder(requireActivity())
+            .setTitle(R.string.mcmessenger_credits_title)
+            .setMessage(R.string.mcmessenger_credits_body)
+            .setPositiveButton(android.R.string.ok, null)
+            .show());
+"@
+
+$iconJava = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/InstanceIconProvider.java'
+Patch-Once -Path $iconJava -Marker 'MC_DEFAULT_ICON' `
+    -Needle '        sStaticIcons.put("default", R.drawable.ic_mojo_full);' `
+    -Insert @"
+        // MC_DEFAULT_ICON
+        sStaticIcons.put("default", R.drawable.mcmessenger_melon_block);
 "@
 
 Write-Host ''

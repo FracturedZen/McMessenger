@@ -1,15 +1,14 @@
 # Fork notes
 
-Upstream: https://github.com/MojoLauncher/MojoLauncher (`v3_openjdk`)
-License: GNU LGPLv3 (see upstream `LICENSE`)
+McMessenger's launcher engine started as a fork of [MojoLauncher](https://github.com/MojoLauncher/MojoLauncher) (`v3_openjdk`, GNU LGPLv3), which itself is based on PojavLauncher.
 
-## Why a fork instead of "use Mojo from Capacitor"
+**Credits:** MojoLauncher and PojavLauncher authors. We keep their LICENSE and copyright notices.
 
-Mojo is the JVM + renderer. Capacitor cannot speak Minecraft TCP. Opening the Play Store Mojo app also cannot feed this overlay its login. The only legitimate way to put a chat GUI on the real client is to **change the launcher** that owns the game process.
+The shipped app is **McMessenger** (`com.fracturedzen.mcmessenger`). It does not require Pojav or Play Store Mojo, does not replace them, and does not show their product name, icon, Discord, or website.
 
 ## What we patch
 
-`scripts/apply-overlay.ps1` copies files into a local clone (`mojo-src/`) and inserts one call in `GameActivity.initLayout`:
+`scripts/apply-overlay.ps1` copies files into a local clone (`mojo-src/`) and rebrands plus inserts:
 
 ```java
 ChatOverlayController.install(this, instance.getGameDirectory());
@@ -17,20 +16,23 @@ ChatOverlayController.install(this, instance.getGameDirectory());
 
 New files (ours):
 
-- `net.kdt.pojavlaunch.chatoverlay.*`
+- `net.kdt.pojavlaunch.chatoverlay.*` (internal package name kept for compile compatibility)
 - `res/layout/view_chat_overlay.xml`
 - `res/layout/item_chat_line.xml`
+- melon drawables + `mcmessenger_strings.xml`
 
-We do not replace Mojo's authenticator. Microsoft device-code / local accounts stay theirs.
+Microsoft device-code / local accounts stay the engine's authenticator.
 
-## Standalone app (not Pojav / not Mojo)
-
-`scripts/apply-overlay.ps1` rebrands the fork:
+## Standalone identity
 
 - Launcher name **McMessenger** (all locales, window title, `Tools.APP_NAME`)
-- `applicationId` **`com.fracturedzen.mcmessenger`** (debug: `.debug`)
+- `applicationId` **`com.fracturedzen.mcmessenger`**
+- Home-screen / density icons: melon block
+- Wiki button → in-app **Credits** (LGPL attribution)
+- Social button → GitHub `FracturedZen/McMessenger`
+- Default instance icon: melon block
 
-It uses Mojo's engine internally. It does **not** require Pojav or Play Store Mojo, and it does **not** replace them.
+Java runtime zips may still be fetched from the upstream JRE host so the game can boot. That is a file mirror, not product branding.
 
 ## Re-applying after `git pull`
 
@@ -42,7 +44,7 @@ cd ..
 .\scripts\build.ps1
 ```
 
-The install marker `// MC_CHAT_OVERLAY` is idempotent. Overlay Java/XML are overwritten from `overlay/`.
+Install markers (`// MC_CHAT_OVERLAY`, `// MC_APP_NAME`, …) are idempotent. Overlay Java/XML are overwritten from `overlay/`.
 
 ## Chat-only load cut (not a silent world cheat)
 
@@ -53,7 +55,7 @@ The overlay does not just paint over the world. Before the JVM starts we rewrite
 
 When Cover is on, the GL backbuffer is shrunk to 16×16 so we are not shading a full-screen frame nobody sees.
 
-After a 45s login grace, a **javaagent** (`mcmessenger-agent.jar`) drops inbound Netty **ByteBuf** frames larger than 4 KiB. Chunk and light payloads are large; chat, keepalive, and teleport confirms are small and still flow. We do **not** skip keepalives, teleport confirms, or movement acks. We do **not** hide you from the tab list.
+After a login grace, a **javaagent** (`mcmessenger-agent.jar`) drops inbound Netty **ByteBuf** frames larger than 16 KiB. Chunk and light payloads are large; chat, keepalive, and teleport confirms are small and still flow. We do **not** skip keepalives, teleport confirms, or movement acks. We do **not** hide you from the tab list.
 
 The agent is JVM bytecode shipped as an asset and passed as `-javaagent` to Minecraft’s JRE. It is not a Fabric/Forge mod.
 
@@ -67,32 +69,3 @@ On death (chat/log: “You died”, “was slain…”, etc. for your username):
 2. The agent sends play `client_command` / PERFORM_RESPAWN (action 0) using a small version→packet-id table. Wrong ids are skipped; Enter still runs.
 
 This is the same packet the Respawn button sends. It is not a ghost/killaura hook.
-
-Build it with JDK 17:
-
-```powershell
-.\scripts\build-agent.ps1
-.\scripts\apply-overlay.ps1
-```
-
-## Version coverage
-
-Mojo already launches ~rd-132211 through current snapshots. McMessenger rides that:
-
-- Chat log: 1.6 `[CHAT]` through 1.19+ `[System] [CHAT]` / `[Not Secure]`.
-- Chat length: 100 characters before 1.11, 256 from 1.11.
-- `options.txt` uses both old and new keys; unknown keys are ignored.
-- Respawn packet ids are tabulated for 1.7.10–1.21.x. Unknown / snapshot versions **do not send a guessed id** (that desyncs). Enter/Space on the death screen still runs.
-- Frame drop is 16 KiB after a 60s login grace so 1.19 signed chat is not discarded.
-- The javaagent is only attached when the instance needs Java 17+ (1.18+). Older instances still get overlay, options, and Enter-respawn.
-
-## Limits
-
-- Incoming chat depends on the client writing chat to `latestlog.txt`. Vanilla does. Some clients mute it.
-- Send injects **T**, then characters, then **Enter**. If the player rebound chat off T, change `ChatSender.CHAT_ANDROID_KEYCODE`.
-- Cover mode blocks touch to the world. Use **Game** to click menus (title screen, inventory).
-- 1.19+ online-mode signed chat still works because we are the real client, not Mineflayer.
-
-## Mineflayer later
-
-PC headless relay remains `C:\Users\Z\Desktop\mc-chat-relay`. Use it when the phone should not run a JVM.
