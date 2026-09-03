@@ -50,11 +50,11 @@ if (-not (Test-Path $asmJar)) {
 }
 
 $srcRoot = Join-RepoPath $Root 'overlay/agent'
+$agentSrcDir = Join-RepoPath $srcRoot 'com/fracturedzen/mcmessenger/agent'
+$agentSrc = @(Get-ChildItem -Path $agentSrcDir -Filter '*.java' | ForEach-Object { $_.FullName })
+if ($agentSrc.Count -lt 1) { Write-Error "No agent .java files in $agentSrcDir" }
 Write-Host "Compiling chat-only javaagent..."
-& $javac --release 17 -cp $asmJar -d $work `
-    (Join-RepoPath $srcRoot 'com/fracturedzen/mcmessenger/agent/PlayDropper.java') `
-    (Join-RepoPath $srcRoot 'com/fracturedzen/mcmessenger/agent/FireChannelReadTransformer.java') `
-    (Join-RepoPath $srcRoot 'com/fracturedzen/mcmessenger/agent/AgentMain.java')
+& $javac --release 17 -cp $asmJar -d $work @agentSrc
 if ($LASTEXITCODE -ne 0) { Write-Error "javac failed" }
 
 Add-Type -AssemblyName System.IO.Compression

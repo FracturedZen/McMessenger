@@ -80,12 +80,11 @@ public final class PlayDropper {
     }
 
     public static boolean shouldDrop(Object msg) {
-        if (msg == null) return false;
-        int n = readableBytes(msg);
-        if (n < LARGE_BYTES) return false;
-        if (startMs == 0L) startMs = System.currentTimeMillis();
-        if (System.currentTimeMillis() - startMs < GRACE_MS) return false;
-        return true;
+        // Off: Velocity /queue switches send a new Join Game + registry (often
+        // hundreds of KB) on the same TCP connection after you have been in
+        // the lobby longer than GRACE_MS. Dropping that kicks you, then the
+        // client may Transfer to the short server name and hit UnknownHost.
+        return false;
     }
 
     public static void release(Object msg) {

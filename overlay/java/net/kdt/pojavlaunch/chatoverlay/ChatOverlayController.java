@@ -149,8 +149,8 @@ public final class ChatOverlayController {
             setStatus("No server");
         } else {
             String dest = port == null ? host : (host + ":" + port);
-            addLine(new ChatMessage("system", null, "Joining " + dest + " (SRV like PC if no port). Queue button sends "
-                    + ChatServerPrefs.queueCmd(activity) + " — long-press to change."));
+            addLine(new ChatMessage("system", null, "Joining " + dest + " (SRV like PC if no port). Queue sends "
+                    + ChatServerPrefs.queueCmd(activity) + " — long-press Queue to change (simpcraft is /queue simpcraft)."));
             addLine(new ChatMessage("system", null, "Menu or Back returns to the launcher. If it sits on Connected with no chat, tap Game to see the Minecraft screen (resource pack / queue / click-to-join)."));
             setStatus("Joining " + dest + "…");
         }
@@ -183,9 +183,17 @@ public final class ChatOverlayController {
         String low = line.toLowerCase();
         if (low.contains("connecting to")) setStatus("Connecting…");
         if (low.contains("failed to connect") || low.contains("connection refused")
-                || low.contains("timed out") || low.contains("unknown host")
-                || low.contains("unable to connect")) {
+                || low.contains("timed out") || low.contains("unable to connect")) {
             setStatus("Join failed");
+        }
+        if (low.contains("unknown host")) {
+            setStatus("Unknown host");
+            String saved = ChatServerPrefs.host(activity);
+            addLine(new ChatMessage("system", null,
+                    "Unknown host: the proxy tried a short name (e.g. simpcraft) that is not public DNS. "
+                            + "Menu, then Connect again to "
+                            + (saved.isEmpty() ? "the lobby address you typed" : saved)
+                            + ". Do not put the queue name in the address box."));
         }
         if (low.contains("resource pack") || low.contains("resourcepack")) {
             setStatus("Resource pack — tap Game");
@@ -238,7 +246,7 @@ public final class ChatOverlayController {
     private void editQueueCmd() {
         final EditText box = new EditText(activity);
         box.setText(ChatServerPrefs.queueCmd(activity));
-        box.setHint("/queue");
+        box.setHint("/queue simpcraft");
         box.setSelectAllOnFocus(true);
         new AlertDialog.Builder(activity)
                 .setTitle("Queue / join command")

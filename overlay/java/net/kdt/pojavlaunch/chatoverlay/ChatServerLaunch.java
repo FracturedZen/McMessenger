@@ -26,35 +26,29 @@ public final class ChatServerLaunch {
             return;
         }
         Integer explicitPort = ChatServerPrefs.explicitPort(ctx);
-        String joinHost = host;
-        Integer joinPort = explicitPort;
-        if (explicitPort == null) {
-            McSrvLookup.Result srv = McSrvLookup.resolve(host);
-            if (srv != null) {
-                joinHost = srv.host;
-                joinPort = srv.port;
-            }
-        }
         stripFlag(launchArgs, "--server");
         stripFlag(launchArgs, "--port");
         stripFlag(launchArgs, "--quickPlayMultiplayer");
 
+        // Pass the typed hostname. Pre-resolving SRV into a different name
+        // made some networks Transfer/reconnect to a name Android cannot look up.
+        // 1.20+ quickPlay without a port does SRV the same way the PC list does.
         boolean quickPlay = McVersion.atLeast(versionId, 1, 20, 0) || McVersion.code(versionId) >= 26 * 10000;
         if (quickPlay) {
-            String addr = joinPort != null ? (joinHost + ":" + joinPort) : host;
+            String addr = explicitPort != null ? (host + ":" + explicitPort) : host;
             launchArgs.add("--quickPlayMultiplayer");
             launchArgs.add(addr);
             Log.i(TAG, "quickPlayMultiplayer " + addr);
             return;
         }
         launchArgs.add("--server");
-        launchArgs.add(joinHost);
-        if (joinPort != null) {
+        launchArgs.add(host);
+        if (explicitPort != null) {
             launchArgs.add("--port");
-            launchArgs.add(Integer.toString(joinPort));
-            Log.i(TAG, "Auto-join " + joinHost + ":" + joinPort);
+            launchArgs.add(Integer.toString(explicitPort));
+            Log.i(TAG, "Auto-join " + host + ":" + explicitPort);
         } else {
-            Log.i(TAG, "Auto-join " + joinHost + " (no port; client default/SRV)");
+            Log.i(TAG, "Auto-join " + host + " (no port; client default/SRV)");
         }
     }
 

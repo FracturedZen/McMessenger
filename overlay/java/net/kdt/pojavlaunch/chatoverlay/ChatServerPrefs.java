@@ -42,8 +42,8 @@ public final class ChatServerPrefs {
     }
 
     public static String queueCmd(Context c) {
-        String q = prefs(c).getString("queue_cmd", "/queue");
-        if (q == null || q.trim().isEmpty()) return "/queue";
+        String q = prefs(c).getString("queue_cmd", "/queue simpcraft");
+        if (q == null || q.trim().isEmpty()) return "/queue simpcraft";
         return q.trim();
     }
 

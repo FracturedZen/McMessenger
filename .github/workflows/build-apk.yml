@@ -65,9 +65,7 @@ jobs:
             curl -fsSL -o "$ASM_JAR" https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7/asm-9.7.jar
           fi
           javac --release 17 -cp "$ASM_JAR" -d overlay/agent/build \
-            overlay/agent/com/fracturedzen/mcmessenger/agent/PlayDropper.java \
-            overlay/agent/com/fracturedzen/mcmessenger/agent/FireChannelReadTransformer.java \
-            overlay/agent/com/fracturedzen/mcmessenger/agent/AgentMain.java
+            overlay/agent/com/fracturedzen/mcmessenger/agent/*.java
           python3 - <<'PY'
           import zipfile
           from pathlib import Path

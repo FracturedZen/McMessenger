@@ -12,8 +12,8 @@ import java.util.List;
 
 /**
  * Copies {@code assets/mcmessenger-agent.jar} into app files and appends {@code -javaagent}.
- * That agent runs inside the <em>game</em> JVM (not ART) and drops large inbound Netty
- * frames after login — chunks/light — while leaving small packets (chat, keepalive, teleport).
+ * That agent runs inside the <em>game</em> JVM (not ART). It remaps short Transfer
+ * hostnames and can send PERFORM_RESPAWN. It does not drop Join Game packets.
  */
 public final class ChatOnlyAgentSupport {
     private static final String TAG = "McMessenger";
@@ -24,6 +24,10 @@ public final class ChatOnlyAgentSupport {
         if (jar == null || !jar.isFile() || jar.length() < 32) {
             Log.w(TAG, "mcmessenger-agent.jar missing — large play packets will not be dropped. Run scripts/build-agent.ps1");
             return;
+        }
+        String joinHost = ChatServerPrefs.host(context);
+        if (joinHost != null && !joinHost.isEmpty()) {
+            javaArgList.add("-Dmcmessenger.joinHost=" + joinHost.trim());
         }
         javaArgList.add("-javaagent:" + jar.getAbsolutePath());
         Log.i(TAG, "Using chat-only javaagent " + jar.getAbsolutePath());
