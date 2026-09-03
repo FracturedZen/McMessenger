@@ -62,13 +62,33 @@ $iconBg = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/values/ic_launcher
 Set-NamedColor $iconBg 'ic_launcher_background' '#1A3D14'
 Write-Host 'Applied melon palette to launcher colors'
 
-$strings = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/values/strings.xml'
-if (Test-Path $strings) {
-    $st = Get-Content -Path $strings -Raw
+# Home-screen name, recents title, crash copy: every locale still says MJLauncher/Pojav.
+$resRoot = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res'
+Get-ChildItem $resRoot -Directory | Where-Object { $_.Name -like 'values*' } | ForEach-Object {
+    $sf = Join-Path $_.FullName 'strings.xml'
+    if (-not (Test-Path $sf)) { return }
+    $st = Get-Content -Path $sf -Raw
     $st2 = [regex]::Replace($st, '<string name="app_short_name">[^<]*</string>', '<string name="app_short_name">McMessenger</string>')
+    $st2 = $st2.Replace('MJLauncher', 'McMessenger').Replace('MojoLauncher', 'McMessenger').Replace('PojavLauncher', 'McMessenger')
     if ($st2 -ne $st) {
-        Set-Content -Path $strings -Value $st2 -NoNewline
-        Write-Host 'Renamed launcher to McMessenger'
+        Set-Content -Path $sf -Value $st2 -NoNewline
+    }
+}
+Write-Host 'Renamed launcher to McMessenger in all locales'
+
+# Own package so this APK is not Mojo/Pojav and does not replace their Play Store app.
+$appGradle = Join-RepoPath $Mojo 'app_pojavlauncher/build.gradle'
+if (Test-Path $appGradle) {
+    $bg = Get-Content -Path $appGradle -Raw
+    $bg2 = $bg.Replace('applicationId "git.artdeell.mjlaunch"', 'applicationId "com.fracturedzen.mcmessenger"')
+    $bg2 = $bg2.Replace("'git.artdeell.mjlaunch.debug'", "'com.fracturedzen.mcmessenger.debug'")
+    $bg2 = $bg2.Replace("'git.artdeell.mjlaunch.scoped.gamefolder.debug'", "'com.fracturedzen.mcmessenger.scoped.gamefolder.debug'")
+    $bg2 = $bg2.Replace("'git.artdeell.mjlaunch.scoped.gamefolder'", "'com.fracturedzen.mcmessenger.scoped.gamefolder'")
+    $bg2 = $bg2.Replace("'git.artdeell.mjlaunch'", "'com.fracturedzen.mcmessenger'")
+    $bg2 = $bg2.Replace("resValue 'string', 'group_id', 'git.artdeell'", "resValue 'string', 'group_id', 'com.fracturedzen'")
+    if ($bg2 -ne $bg) {
+        Set-Content -Path $appGradle -Value $bg2 -NoNewline
+        Write-Host 'applicationId is com.fracturedzen.mcmessenger (standalone, not Mojo)'
     }
 }
 
@@ -172,6 +192,33 @@ Patch-Once -Path $gr -Marker 'MC_CHAT_ONLY_AGENT' `
         }
 "@
 
+$toolsJava = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/Tools.java'
+Patch-Once -Path $toolsJava -Marker 'MC_APP_NAME' `
+    -Needle '    public static String APP_NAME = "PojavLauncher";' `
+    -Insert @"
+    // MC_APP_NAME
+    public static String APP_NAME = "McMessenger";
+"@
+Patch-Once -Path $toolsJava -Marker 'MC_GAME_HOME' `
+    -Needle '    public static String DIR_GAME_HOME = Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/PojavLauncher";' `
+    -Insert @"
+    // MC_GAME_HOME
+    public static String DIR_GAME_HOME = Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/McMessenger";
+"@
+Patch-Once -Path $toolsJava -Marker 'MC_STORAGE_ROOT' `
+    -Needle '        File launcherRoot = new File(externalStorageDirectory,"games/PojavLauncher");' `
+    -Insert @"
+        // MC_STORAGE_ROOT
+        File launcherRoot = new File(externalStorageDirectory,"games/McMessenger");
+"@
+
+Patch-Once -Path $ga -Marker 'MC_WINDOW_TITLE' `
+    -Needle '            setTitle("MojoLauncher (" + version + ")");' `
+    -Insert @"
+            // MC_WINDOW_TITLE
+            setTitle("McMessenger (" + version + ")");
+"@
+
 Write-Host ''
 Write-Host 'Next: .\scripts\build.ps1'
-Write-Host 'Optional: change applicationId so this APK does not replace Play Store Mojo. See docs\FORK.md'
+Write-Host 'This APK is McMessenger (com.fracturedzen.mcmessenger), not Pojav/Mojo. Engine is still their launcher code.'

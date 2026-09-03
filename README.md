@@ -55,7 +55,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 APK lands in `mojo-src\app_pojavlauncher\build\outputs\apk\full\debug\`.
 
-Sideload it. Sign in (Microsoft or offline) inside the launcher, pick a version, Play. When the game boots, the **McMessenger** overlay is on top.
+Sideload it. The home-screen name is **McMessenger** (`com.fracturedzen.mcmessenger`) — it is not Pojav/Mojo and does not replace those apps. Sign in (Microsoft or offline) inside the launcher, pick a version, Play. When the game boots, the **McMessenger** overlay is on top.
 
 To auto-join a server (so you do not need the title-screen Multiplayer button), put this in the instance's **game arguments**:
 

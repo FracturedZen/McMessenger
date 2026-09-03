@@ -23,21 +23,14 @@ New files (ours):
 
 We do not replace Mojo's authenticator. Microsoft device-code / local accounts stay theirs.
 
-## Side-by-side with Play Store Mojo
+## Standalone app (not Pojav / not Mojo)
 
-Default `applicationId` in `app_pojavlauncher/build.gradle` is `git.artdeell.mjlaunch` (debug suffix `.debug`). Installing this APK **replaces** Play Store Mojo.
+`scripts/apply-overlay.ps1` rebrands the fork:
 
-To keep both, after clone, before build, change:
+- Launcher name **McMessenger** (all locales, window title, `Tools.APP_NAME`)
+- `applicationId` **`com.fracturedzen.mcmessenger`** (debug: `.debug`)
 
-```
-applicationId "git.artdeell.mjlaunch"
-```
-
-to:
-
-```
-applicationId "com.fracturedzen.mcmessenger"
-```
+It uses Mojo's engine internally. It does **not** require Pojav or Play Store Mojo, and it does **not** replace them.
 
 ## Re-applying after `git pull`
 
