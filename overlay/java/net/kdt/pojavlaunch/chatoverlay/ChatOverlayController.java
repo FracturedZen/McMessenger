@@ -63,6 +63,8 @@ public final class ChatOverlayController {
     private boolean leaveDialogOpen = false;
     private String selfName = "";
     private String lastProgress = "";
+    private String lastTraffic = "";
+    private long lastTrafficAt;
     private int lastImeBottom;
     private final Handler imeKeep = new Handler(Looper.getMainLooper());
     private final Runnable keepIme = new Runnable() {
@@ -208,6 +210,11 @@ public final class ChatOverlayController {
     private void onLogLine(String line) {
         ChatMessage msg = parser.parseLine(line);
         if (msg != null) {
+            if ("join".equals(msg.kind) || "leave".equals(msg.kind)) {
+                addTraffic(msg);
+                if ("join".equals(msg.kind) && isSelf(msg.username)) markConnected(msg.text);
+                return;
+            }
             addLine(msg);
             handleDeathLine(msg.text);
             markConnected(msg.text);
@@ -236,12 +243,31 @@ public final class ChatOverlayController {
         if (low.contains("resource pack") || low.contains("resourcepack")) {
             setStatus("Resource pack");
         }
-        if (low.contains("joined the game") || low.contains("logged in")
+        ChatMessage traffic = ChatJoinLeave.parse(line);
+        if (traffic != null) {
+            addTraffic(traffic);
+            if ("join".equals(traffic.kind) && isSelf(traffic.username)) markConnected(line);
+            return;
+        }
+        if (low.contains("logged in")
                 || (low.contains("multiplayer") && low.contains("joined"))) {
             markConnected(line);
         }
         maybeProgress(line);
         handleDeathLine(line);
+    }
+
+    private boolean isSelf(String name) {
+        return name != null && !selfName.isEmpty() && selfName.equalsIgnoreCase(name);
+    }
+
+    private void addTraffic(ChatMessage msg) {
+        String key = msg.kind + ":" + msg.username;
+        long now = System.currentTimeMillis();
+        if (key.equals(lastTraffic) && now - lastTrafficAt < 2000) return;
+        lastTraffic = key;
+        lastTrafficAt = now;
+        addLine(msg);
     }
 
     private void markConnected(String text) {
@@ -361,11 +387,15 @@ public final class ChatOverlayController {
         tv.setPadding(8, 6, 8, 6);
         String prefix;
         if ("you".equals(msg.kind)) prefix = "You: ";
+        else if ("join".equals(msg.kind)) prefix = "→ ";
+        else if ("leave".equals(msg.kind)) prefix = "← ";
         else if ("player".equals(msg.kind) && msg.username != null) prefix = msg.username + ": ";
         else prefix = "System: ";
         tv.setText(prefix + msg.text);
         if ("system".equals(msg.kind)) tv.setTextColor(Color.parseColor("#C8E090"));
         if ("you".equals(msg.kind)) tv.setTextColor(Color.parseColor("#FF8A96"));
+        if ("join".equals(msg.kind)) tv.setTextColor(Color.parseColor("#9CFF7A"));
+        if ("leave".equals(msg.kind)) tv.setTextColor(Color.parseColor("#A8C4A0"));
         transcript.addView(tv);
         if (stickBottom) {
             scroller.post(() -> scroller.fullScroll(View.FOCUS_DOWN));

@@ -29,6 +29,9 @@ public final class ChatLogParser {
         Matcher tagged = CHAT_TAG.matcher(line);
         if (tagged.find()) return classify(unescape(tagged.group(1)));
 
+        ChatMessage traffic = ChatJoinLeave.parse(line);
+        if (traffic != null) return traffic;
+
         if (line.startsWith("{") && line.contains("\"text\"")) {
             StringBuilder acc = new StringBuilder();
             Matcher jt = JSON_TEXT.matcher(line);
@@ -55,6 +58,8 @@ public final class ChatLogParser {
         if (colon.matches()) {
             return new ChatMessage("player", colon.group(1), colon.group(2));
         }
+        ChatMessage traffic = ChatJoinLeave.parse(text);
+        if (traffic != null) return traffic;
         return new ChatMessage("system", null, text);
     }
 
