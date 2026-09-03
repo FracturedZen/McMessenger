@@ -316,8 +316,57 @@ Patch-Once -Path $menuFrag -Marker 'MC_SERVER_BAR' `
     -Insert @"
         mPlayButton.setOnClickListener(v -> ExtraCore.setValue(ExtraConstants.LAUNCH_GAME, true));
         // MC_SERVER_BAR
-        net.kdt.pojavlaunch.chatoverlay.ChatServerBar.install(view, mPlayButton);
+        try {
+            net.kdt.pojavlaunch.chatoverlay.ChatServerBar.install(view, mPlayButton);
+        } catch (Throwable ignored) {}
 "@
+
+$fragPortrait = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/layout/fragment_launcher.xml'
+if ((Test-Path $fragPortrait) -and -not ((Get-Content -Path $fragPortrait -Raw).Contains('view_server_bar'))) {
+    $fp = (Get-Content -Path $fragPortrait -Raw).Replace("`r`n", "`n")
+    $fp = $fp.Replace(
+        "		app:layout_constraintBottom_toTopOf=`"@id/play_button`"`n		app:layout_constraintEnd_toStartOf=`"@+id/edit_profile_button`"",
+        "		app:layout_constraintBottom_toTopOf=`"@id/mc_server_bar`"`n		app:layout_constraintEnd_toStartOf=`"@+id/edit_profile_button`""
+    )
+    $fp = $fp.Replace(
+        "	<com.kdt.mcgui.MineButton`n		android:id=`"@+id/play_button`"",
+        @"
+	<include
+		layout="@layout/view_server_bar"
+		android:layout_width="0dp"
+		android:layout_height="wrap_content"
+		app:layout_constraintBottom_toTopOf="@id/play_button"
+		app:layout_constraintEnd_toEndOf="parent"
+		app:layout_constraintStart_toStartOf="parent" />
+
+	<com.kdt.mcgui.MineButton
+		android:id="@+id/play_button"
+"@.Replace("`r`n", "`n")
+    )
+    Set-Content -Path $fragPortrait -Value $fp -NoNewline
+    Write-Host 'Added server bar to portrait launcher'
+}
+
+$fragLand = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/layout-land/fragment_launcher.xml'
+if ((Test-Path $fragLand) -and -not ((Get-Content -Path $fragLand -Raw).Contains('view_server_bar'))) {
+    $fl = Get-Content -Path $fragLand -Raw
+    $needleLand = "    <com.kdt.mcgui.mcVersionSpinner"
+    $insertLand = @"
+    <include
+        layout="@layout/view_server_bar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toTopOf="@id/mc_version_spinner"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <com.kdt.mcgui.mcVersionSpinner
+"@
+    if ($fl.Contains($needleLand)) {
+        Set-Content -Path $fragLand -Value $fl.Replace($needleLand, $insertLand) -NoNewline
+        Write-Host 'Added server bar to landscape launcher'
+    }
+}
 
 $manifest = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/AndroidManifest.xml'
 if (Test-Path $manifest) {
