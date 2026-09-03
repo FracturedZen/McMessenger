@@ -14,9 +14,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
-import androidx.activity.ComponentActivity;
 
 import net.kdt.pojavlaunch.Tools;
 import net.kdt.pojavlaunch.authenticator.accounts.Account;
@@ -46,7 +44,6 @@ public final class ChatOverlayController {
     private ScrollView scroller;
     private EditText input;
     private TextView status;
-    private Button coverBtn;
     private Button autoRespawnBtn;
     private boolean cover = false;
     private boolean stickBottom = true;
@@ -91,7 +88,6 @@ public final class ChatOverlayController {
         scroller = root.findViewById(R.id.mc_chat_scroll);
         input = root.findViewById(R.id.mc_chat_input);
         status = root.findViewById(R.id.mc_chat_status);
-        coverBtn = root.findViewById(R.id.mc_chat_cover);
         autoRespawnBtn = root.findViewById(R.id.mc_chat_autorespawn);
         Button sendBtn = root.findViewById(R.id.mc_chat_send);
         Button respawnNowBtn = root.findViewById(R.id.mc_chat_respawn_now);
@@ -112,21 +108,8 @@ public final class ChatOverlayController {
             send();
             return true;
         });
-        if (coverBtn != null) {
-            coverBtn.setVisibility(View.GONE);
-            coverBtn.setOnClickListener(v -> setCover(!cover));
-        }
         View leaveBtn = root.findViewById(R.id.mc_chat_leave);
         if (leaveBtn != null) leaveBtn.setOnClickListener(v -> leaveToMenu());
-        if (activity instanceof ComponentActivity) {
-            ((ComponentActivity) activity).getOnBackPressedDispatcher().addCallback(activity,
-                    new OnBackPressedCallback(true) {
-                        @Override
-                        public void handleOnBackPressed() {
-                            leaveToMenu();
-                        }
-                    });
-        }
         autoRespawnBtn.setOnClickListener(v -> {
             boolean next = !respawn.isAuto();
             respawn.setAuto(next);
@@ -286,7 +269,6 @@ public final class ChatOverlayController {
         cover = on;
         if (on) root.setBackgroundResource(R.drawable.mcmessenger_app_bg);
         else root.setBackgroundColor(Color.TRANSPARENT);
-        if (coverBtn != null) coverBtn.setText(on ? "Game" : "Cover");
         root.setClickable(on);
         scroller.setVisibility(on ? View.VISIBLE : View.GONE);
         hideStockControls(on);
