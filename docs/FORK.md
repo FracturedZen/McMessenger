@@ -57,7 +57,7 @@ The overlay does not just paint over the world. Before the JVM starts we rewrite
 
 When Cover is on, the GL backbuffer is shrunk to 16×16 so we are not shading a full-screen frame nobody sees.
 
-A **javaagent** (`mcmessenger-agent.jar`) used to drop inbound Netty frames larger than 16 KiB after 60s. That kicked people off Velocity networks: lobby join fits in the grace window, then `/queue` sends a new Join Game / registry that is huge and was dropped. Size-dropping is **off**. Cover still shrinks the GL surface. The agent remaps unqualified Transfer hostnames (`simpcraft`) to the public join host (`simpcraft.com`) and still sends PERFORM_RESPAWN when asked.
+A **javaagent** (`mcmessenger-agent.jar`) drops inbound Netty frames larger than 16 KiB after a login grace, except very large Join Game / registry frames. A quiet gap then a large burst (Velocity `/queue`) starts a new grace so the switch is not dropped. The overlay pulses that grace when you send chat. Cover still shrinks the GL surface. The agent does **not** patch `java.net.InetAddress`.
 
 The agent is JVM bytecode shipped as an asset and passed as `-javaagent` to Minecraft’s JRE. It is not a Fabric/Forge mod.
 

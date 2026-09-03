@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
  */
 public final class PlayDropper {
     /** Join Game / command tree / dimension codec can be huge. Do not drop during login. */
-    public static final long GRACE_MS = 60_000L;
+    public static final long GRACE_MS = 90_000L;
     /**
      * 1.19+ signed chat can be several KB. Chunks/light are typically much larger.
      * 16 KiB keeps chat; still drops bulk terrain.
@@ -26,7 +26,10 @@ public final class PlayDropper {
     private static final Pattern VER = Pattern.compile("(?:^|[^0-9])(1\\.\\d{1,2}(?:\\.\\d{1,2})?|26\\.\\d+(?:\\.\\d+)?)(?:[^0-9]|$)");
 
     private static volatile long startMs;
+    private static volatile long lastLargeMs;
+    private static volatile long lastGracePulse;
     private static volatile Object lastCtx;
+    private static volatile Object lastChannel;
     private static volatile long lastRespawnMs;
 
     /** Play serverbound client_command / Client Status. Action 0 = PERFORM_RESPAWN on every version here. */
@@ -76,15 +79,39 @@ public final class PlayDropper {
     }
 
     public static void noteContext(Object ctx) {
-        if (ctx != null) lastCtx = ctx;
+        if (ctx == null) return;
+        lastCtx = ctx;
+        try {
+            Object ch = ctx.getClass().getMethod("channel").invoke(ctx);
+            if (ch != lastChannel) {
+                lastChannel = ch;
+                startMs = System.currentTimeMillis();
+            }
+        } catch (Throwable ignored) {
+            // Keep lastCtx for respawn even if channel() is missing.
+        }
     }
 
     public static boolean shouldDrop(Object msg) {
-        // Off: Velocity /queue switches send a new Join Game + registry (often
-        // hundreds of KB) on the same TCP connection after you have been in
-        // the lobby longer than GRACE_MS. Dropping that kicks you, then the
-        // client may Transfer to the short server name and hit UnknownHost.
-        return false;
+        try {
+            if (msg == null) return false;
+            int n = readableBytes(msg);
+            if (n < LARGE_BYTES) return false;
+            long now = System.currentTimeMillis();
+            // Lobby idle is keepalives/chat (small). /queue then a large Join Game
+            // looks like a burst after a quiet gap — start a new login grace.
+            if (lastLargeMs == 0L || now - lastLargeMs > 8_000L) {
+                startMs = now;
+            }
+            lastLargeMs = now;
+            if (startMs == 0L) startMs = now;
+            if (now - startMs < GRACE_MS) return false;
+            // Registry / Join Game frames are much bigger than one chunk.
+            if (n >= 96 * 1024) return false;
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     public static void release(Object msg) {
@@ -105,12 +132,23 @@ public final class PlayDropper {
                 if (!f.isFile()) continue;
                 boolean want = false;
                 String version = "";
+                long gracePulse = 0L;
                 try (BufferedReader r = new BufferedReader(new FileReader(f))) {
                     String line;
                     while ((line = r.readLine()) != null) {
                         if (line.startsWith("respawn=1")) want = true;
                         if (line.startsWith("version=")) version = line.substring(8).trim();
+                        if (line.startsWith("grace=")) {
+                            try {
+                                gracePulse = Long.parseLong(line.substring(6).trim());
+                            } catch (Exception ignored) {}
+                        }
                     }
+                }
+                if (gracePulse > lastGracePulse) {
+                    lastGracePulse = gracePulse;
+                    startMs = System.currentTimeMillis();
+                    System.out.println("[mcmessenger] drop grace reset from overlay");
                 }
                 if (want) tryRespawn(version);
             } catch (InterruptedException e) {

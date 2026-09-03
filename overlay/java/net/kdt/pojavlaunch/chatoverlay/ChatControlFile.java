@@ -14,9 +14,19 @@ public final class ChatControlFile {
     public static final String NAME = ".mcmessenger-control";
 
     private static File dir;
+    private static long gracePulse;
+    private static boolean lastAuto;
+    private static boolean lastRespawn;
+    private static String lastVersion = "";
 
     public static void setGameDir(File gameDir) {
         dir = gameDir;
+    }
+
+    /** Tell the game JVM to keep the next Join Game (Velocity /queue switch). */
+    public static void pulseGrace() {
+        gracePulse = System.currentTimeMillis();
+        write(lastAuto, lastRespawn, lastVersion);
     }
 
     public static File file() {
@@ -28,9 +38,13 @@ public final class ChatControlFile {
     }
 
     public static void write(boolean autoRespawn, boolean requestRespawn, String version) {
+        lastAuto = autoRespawn;
+        lastRespawn = requestRespawn;
+        lastVersion = version == null ? "" : version;
         String body = "autorespawn=" + (autoRespawn ? "1" : "0") + "\n"
                 + "respawn=" + (requestRespawn ? "1" : "0") + "\n"
-                + "version=" + (version == null ? "" : version) + "\n";
+                + "version=" + lastVersion + "\n"
+                + "grace=" + gracePulse + "\n";
         File f = file();
         try (FileOutputStream out = new FileOutputStream(f)) {
             out.write(body.getBytes(StandardCharsets.UTF_8));

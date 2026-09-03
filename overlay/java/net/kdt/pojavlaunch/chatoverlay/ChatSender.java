@@ -33,6 +33,7 @@ public final class ChatSender {
         int max = McVersion.maxChatLength(version);
         if (text.length() > max) text = text.substring(0, max);
         sending = true;
+        ChatControlFile.pulseGrace();
         final String payload = text;
         CallbackBridge.sendKeyPress(CHAT_ANDROID_KEYCODE);
         main.postDelayed(() -> {

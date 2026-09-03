@@ -42,7 +42,7 @@ Remote: **https://github.com/FracturedZen/McMessenger**
 6. **Menu** (top left) or the phone **Back** button disconnects and returns to the launcher. **Queue** sends `/queue simpcraft` (long-press to edit).
 7. **Game** shows the real Minecraft screen (resource-pack prompt, queue GUI, click-to-join). **Chat** or Back returns to the overlay.
 
-After the lobby, `/queue simpcraft` is a Velocity switch on the same proxy. If you get kicked or **Unknown host**, use **Menu** then **Connect** again to `simpcraft.com` — do not type `simpcraft` in the address box.
+After the lobby, **Queue** (`/queue simpcraft`) is a Velocity switch. If you get **Unknown host**, Menu then Connect again to `simpcraft.com` — do not type `simpcraft` in the address box.
 
 ## How chat works
 
