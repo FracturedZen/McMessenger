@@ -14,7 +14,9 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
+import androidx.activity.ComponentActivity;
 
 import net.kdt.pojavlaunch.Tools;
 import net.kdt.pojavlaunch.authenticator.accounts.Account;
@@ -22,6 +24,7 @@ import net.kdt.pojavlaunch.authenticator.accounts.Accounts;
 import net.kdt.pojavlaunch.game.GameActivity;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 
 import git.artdeell.mojo.R;
 
@@ -30,6 +33,8 @@ import git.artdeell.mojo.R;
  * Login stays in Mojo. This only covers the running client.
  */
 public final class ChatOverlayController {
+    private static WeakReference<ChatOverlayController> sActive;
+
     private final Activity activity;
     private final ChatLogParser parser = new ChatLogParser();
     private final ChatSender sender = new ChatSender();
@@ -45,6 +50,7 @@ public final class ChatOverlayController {
     private Button autoRespawnBtn;
     private boolean cover = false;
     private boolean stickBottom = true;
+    private boolean leaveDialogOpen = false;
     private String selfName = "";
 
     private ChatOverlayController(Activity activity) {
@@ -90,6 +96,8 @@ public final class ChatOverlayController {
         Button sendBtn = root.findViewById(R.id.mc_chat_send);
         Button respawnNowBtn = root.findViewById(R.id.mc_chat_respawn_now);
 
+        sActive = new WeakReference<>(this);
+
         SharedPreferences prefs = activity.getSharedPreferences("mcmessenger", 0);
         respawn.setAuto(prefs.getBoolean("auto_respawn", false));
         syncAutoRespawnButton();
@@ -104,8 +112,21 @@ public final class ChatOverlayController {
             send();
             return true;
         });
-        coverBtn.setOnClickListener(v -> setCover(!cover));
-        root.findViewById(R.id.mc_chat_hide).setOnClickListener(v -> setCover(false));
+        if (coverBtn != null) {
+            coverBtn.setVisibility(View.GONE);
+            coverBtn.setOnClickListener(v -> setCover(!cover));
+        }
+        View leaveBtn = root.findViewById(R.id.mc_chat_leave);
+        if (leaveBtn != null) leaveBtn.setOnClickListener(v -> leaveToMenu());
+        if (activity instanceof ComponentActivity) {
+            ((ComponentActivity) activity).getOnBackPressedDispatcher().addCallback(activity,
+                    new OnBackPressedCallback(true) {
+                        @Override
+                        public void handleOnBackPressed() {
+                            leaveToMenu();
+                        }
+                    });
+        }
         autoRespawnBtn.setOnClickListener(v -> {
             boolean next = !respawn.isAuto();
             respawn.setAuto(next);
@@ -138,13 +159,10 @@ public final class ChatOverlayController {
             String dest = port == null ? host : (host + ":" + port);
             addLine(new ChatMessage("system", null, "Joining " + dest + " (SRV like PC if no port). Queue button sends "
                     + ChatServerPrefs.queueCmd(activity) + " — long-press to change."));
+            addLine(new ChatMessage("system", null, "Menu or the phone Back button returns to the launcher."));
             setStatus("Joining " + dest + "…");
         }
         setCover(true);
-        View coverBtnView = root.findViewById(R.id.mc_chat_cover);
-        View peekBtn = root.findViewById(R.id.mc_chat_hide);
-        if (coverBtnView != null) coverBtnView.setVisibility(View.GONE);
-        if (peekBtn != null) peekBtn.setVisibility(View.GONE);
 
         File log = new File(Tools.DIR_GAME_HOME, "latestlog.txt");
         tailer = new ChatLogTailer(log, this::onLogLine);
@@ -268,7 +286,7 @@ public final class ChatOverlayController {
         cover = on;
         if (on) root.setBackgroundResource(R.drawable.mcmessenger_app_bg);
         else root.setBackgroundColor(Color.TRANSPARENT);
-        coverBtn.setText(on ? "Game" : "Cover");
+        if (coverBtn != null) coverBtn.setText(on ? "Game" : "Cover");
         root.setClickable(on);
         scroller.setVisibility(on ? View.VISIBLE : View.GONE);
         hideStockControls(on);
@@ -288,5 +306,43 @@ public final class ChatOverlayController {
 
     private void setStatus(String s) {
         if (status != null) status.setText(s);
+    }
+
+    /** Phone Back from GameActivity. True if the overlay handled it. */
+    public static boolean onSystemBack() {
+        ChatOverlayController c = sActive != null ? sActive.get() : null;
+        if (c == null) return false;
+        c.leaveToMenu();
+        return true;
+    }
+
+    private void leaveToMenu() {
+        if (activity.isFinishing()) return;
+        activity.runOnUiThread(() -> {
+            if (leaveDialogOpen || activity.isFinishing()) return;
+            leaveDialogOpen = true;
+            new AlertDialog.Builder(activity)
+                    .setTitle("Leave server")
+                    .setMessage("Disconnect and return to the McMessenger menu?")
+                    .setNegativeButton(android.R.string.cancel, (d, w) -> leaveDialogOpen = false)
+                    .setPositiveButton("Menu", (d, w) -> exitToLauncher())
+                    .setOnCancelListener(d -> leaveDialogOpen = false)
+                    .setOnDismissListener(d -> {
+                        if (!activity.isFinishing()) leaveDialogOpen = false;
+                    })
+                    .show();
+        });
+    }
+
+    private void exitToLauncher() {
+        try {
+            if (tailer != null) tailer.stop();
+            Tools.restartLauncherActivity(activity);
+            Tools.fullyExit();
+        } catch (Throwable t) {
+            try {
+                activity.finish();
+            } catch (Throwable ignored) {}
+        }
     }
 }

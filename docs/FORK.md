@@ -14,6 +14,8 @@ The shipped app is **McMessenger** (`com.fracturedzen.mcmessenger`). It does not
 ChatOverlayController.install(this, instance.getGameDirectory());
 ```
 
+Phone Back on GameActivity is remapped from Minecraft ESC to `ChatOverlayController.onSystemBack()` so chat can return to the launcher menu.
+
 New files (ours):
 
 - `net.kdt.pojavlaunch.chatoverlay.*` (internal package name kept for compile compatibility)

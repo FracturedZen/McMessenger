@@ -284,6 +284,26 @@ Patch-Once -Path $toolsJava -Marker 'MC_STORAGE_ROOT' `
         File launcherRoot = new File(externalStorageDirectory,"games/McMessenger");
 "@
 
+Patch-Once -Path $ga -Marker 'MC_BACK_TO_MENU' `
+    -Needle '        boolean handleEvent;' `
+    -Insert @"
+        // MC_BACK_TO_MENU
+        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && (touchCharInput == null || !touchCharInput.isEnabled())) {
+            if (event.getAction() == KeyEvent.ACTION_UP) {
+                if (!net.kdt.pojavlaunch.chatoverlay.ChatOverlayController.onSystemBack()) {
+                    try {
+                        Tools.restartLauncherActivity(this);
+                        Tools.fullyExit();
+                    } catch (Throwable ignored) {
+                        finish();
+                    }
+                }
+            }
+            return true;
+        }
+        boolean handleEvent;
+"@
+
 Patch-Once -Path $ga -Marker 'MC_WINDOW_TITLE' `
     -Needle '            setTitle("MojoLauncher (" + version + ")");' `
     -Insert @"
