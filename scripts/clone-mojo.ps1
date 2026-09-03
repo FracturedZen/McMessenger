@@ -14,12 +14,17 @@ if (Test-Path $dest) {
     Set-Location $dest
     git fetch --depth 1 origin v3_openjdk
     git checkout v3_openjdk
-    git submodule update --init --depth 1
+    git submodule update --init --recursive --depth 1
+    if ($LASTEXITCODE -ne 0) { git submodule update --init --recursive }
     Set-Location $Root
 } else {
     Write-Host "Shallow-cloning MojoLauncher (v3_openjdk) with submodules..."
     Write-Host "This is large. Wait."
-    git clone --depth 1 --branch v3_openjdk --recurse-submodules https://github.com/MojoLauncher/MojoLauncher.git $dest
+    git clone --depth 1 --branch v3_openjdk --single-branch https://github.com/MojoLauncher/MojoLauncher.git $dest
+    Set-Location $dest
+    git submodule update --init --recursive --depth 1
+    if ($LASTEXITCODE -ne 0) { git submodule update --init --recursive }
+    Set-Location $Root
 }
 
 Write-Host ""

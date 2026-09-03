@@ -1,3 +1,4 @@
 Premain-Class: com.fracturedzen.mcmessenger.agent.AgentMain
 Can-Redefine-Classes: true
 Can-Retransform-Classes: true
+

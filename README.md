@@ -39,7 +39,7 @@ cd C:\Users\Z\Desktop\McMessenger
 
 Create the empty repo on GitHub named **McMessenger** under **FracturedZen** (no README), then `git push -u origin main`.
 
-[Actions → Build debug APK](https://github.com/FracturedZen/McMessenger/actions) (after the first push) uploads a sideload debug APK. This Windows box has JDK 21 but **no Android SDK / Android Studio**, so the APK cannot be assembled here.
+[Actions → Build debug APK](https://github.com/FracturedZen/McMessenger/actions) (after the first push) uploads a sideload debug APK (`assembleFullDebug` — Mojo has `full` / `noruntime` flavors, so plain `assembleDebug` is not the task). This Windows box has JDK 21 but **no Android SDK / Android Studio**, so the APK cannot be assembled here.
 
 ## What you run (Windows)
 
@@ -53,7 +53,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\build.ps1
 ```
 
-APK lands in `mojo-src\app_pojavlauncher\build\outputs\apk\debug\`.
+APK lands in `mojo-src\app_pojavlauncher\build\outputs\apk\full\debug\`.
 
 Sideload it. Sign in (Microsoft or offline) inside the launcher, pick a version, Play. When the game boots, the **McMessenger** overlay is on top.
 

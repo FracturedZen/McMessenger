@@ -1,4 +1,5 @@
 # Builds a debug APK on GitHub. Sideload only — not Play Store signed.
+# Mojo has product flavors (full / noruntime). The working task is assembleFullDebug.
 name: Build debug APK
 
 on:
@@ -12,29 +13,92 @@ on:
 
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+
+      - name: Clone MojoLauncher (v3_openjdk + submodules)
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v3_openjdk --single-branch \
+            https://github.com/MojoLauncher/MojoLauncher.git mojo-src
+          git -C mojo-src submodule update --init --recursive --depth 1 \
+            || git -C mojo-src submodule update --init --recursive
+
+      - name: Get LTW
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          repo: MojoLauncher/LTW
+          workflow: android.yml
+          workflow_conclusion: success
+          name: output-aar
+          path: mojo-src/app_pojavlauncher/libs
+
+      - name: Get Mesa
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          repo: MojoLauncher/mesa-unified2
+          workflow: android.yml
+          workflow_conclusion: success
+          branch: mojo/26.2
+          name: mesa-aar
+          path: mojo-src/app_pojavlauncher/libs
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
 
-      - name: Clone MojoLauncher and apply overlay
+      - name: Build chat-only javaagent
+        run: |
+          set -euo pipefail
+          mkdir -p overlay/agent/build overlay/agent/lib overlay/prebuilt
+          ASM_JAR=overlay/agent/lib/asm-9.7.jar
+          if [ ! -f "$ASM_JAR" ]; then
+            curl -fsSL -o "$ASM_JAR" https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7/asm-9.7.jar
+          fi
+          javac --release 17 -cp "$ASM_JAR" -d overlay/agent/build \
+            overlay/agent/com/fracturedzen/mcmessenger/agent/PlayDropper.java \
+            overlay/agent/com/fracturedzen/mcmessenger/agent/FireChannelReadTransformer.java \
+            overlay/agent/com/fracturedzen/mcmessenger/agent/AgentMain.java
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          work = Path("overlay/agent/build")
+          asm = Path("overlay/agent/lib/asm-9.7.jar")
+          out = Path("overlay/prebuilt/mcmessenger-agent.jar")
+          manifest = Path("overlay/agent/MANIFEST.MF")
+          if out.exists():
+              out.unlink()
+          with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
+              zf.write(manifest, "META-INF/MANIFEST.MF")
+              with zipfile.ZipFile(asm) as az:
+                  for info in az.infolist():
+                      name = info.filename.replace("\\", "/")
+                      if name.startswith("META-INF") or info.is_dir():
+                          continue
+                      zf.writestr(name, az.read(info.filename))
+              for p in work.rglob("*.class"):
+                  zf.write(p, p.relative_to(work).as_posix())
+          print("Wrote", out, "size", out.stat().st_size)
+          PY
+
+      - name: Apply overlay
         shell: pwsh
         run: |
-          Set-ExecutionPolicy -Scope Process Bypass
-          ./scripts/clone-mojo.ps1
-          ./scripts/build-agent.ps1
-          ./scripts/apply-overlay.ps1
+          $ErrorActionPreference = 'Stop'
+          & ./scripts/apply-overlay.ps1
 
-      - name: Gradle assembleDebug
+      - name: Gradle assembleFullDebug
         working-directory: mojo-src
-        run: ./gradlew :app_pojavlauncher:assembleDebug --no-daemon --stacktrace
+        run: gradle :app_pojavlauncher:assembleFullDebug --no-daemon --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:

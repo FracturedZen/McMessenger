@@ -1,17 +1,28 @@
 #Requires -Version 5.1
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
-$Mojo = Join-Path $Root 'mojo-src'
+
+# Join-Path with backslashes is a literal filename on Linux pwsh.
+function Join-RepoPath {
+    param([string]$Base, [string]$Rel)
+    $p = $Base
+    foreach ($s in ($Rel -replace '\\', '/').Split('/')) {
+        if ($s) { $p = [System.IO.Path]::Combine($p, $s) }
+    }
+    return $p
+}
+
+$Mojo = Join-RepoPath $Root 'mojo-src'
 if (-not (Test-Path $Mojo)) {
     Write-Error 'mojo-src missing. Run .\scripts\clone-mojo.ps1 first.'
 }
 
-$javaSrc = Join-Path $Root 'overlay\java\net\kdt\pojavlaunch\chatoverlay'
-$javaDst = Join-Path $Mojo 'app_pojavlauncher\src\main\java\net\kdt\pojavlaunch\chatoverlay'
-$resSrc = Join-Path $Root 'overlay\res\layout'
-$resDst = Join-Path $Mojo 'app_pojavlauncher\src\main\res\layout'
-$agentJar = Join-Path $Root 'overlay\prebuilt\mcmessenger-agent.jar'
-$assetsDst = Join-Path $Mojo 'app_pojavlauncher\src\main\assets'
+$javaSrc = Join-RepoPath $Root 'overlay/java/net/kdt/pojavlaunch/chatoverlay'
+$javaDst = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/chatoverlay'
+$resSrc = Join-RepoPath $Root 'overlay/res/layout'
+$resDst = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/layout'
+$agentJar = Join-RepoPath $Root 'overlay/prebuilt/mcmessenger-agent.jar'
+$assetsDst = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/assets'
 
 New-Item -ItemType Directory -Force -Path $javaDst | Out-Null
 New-Item -ItemType Directory -Force -Path $resDst | Out-Null
@@ -19,10 +30,10 @@ Copy-Item -Force (Join-Path $javaSrc '*.java') $javaDst
 Copy-Item -Force (Join-Path $resSrc '*.xml') $resDst
 Write-Host 'Copied overlay Java + layouts'
 
-$drawSrc = Join-Path $Root 'overlay\res\drawable'
-$drawDst = Join-Path $Mojo 'app_pojavlauncher\src\main\res\drawable'
-$valSrc = Join-Path $Root 'overlay\res\values'
-$valDst = Join-Path $Mojo 'app_pojavlauncher\src\main\res\values'
+$drawSrc = Join-RepoPath $Root 'overlay/res/drawable'
+$drawDst = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/drawable'
+$valSrc = Join-RepoPath $Root 'overlay/res/values'
+$valDst = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/values'
 New-Item -ItemType Directory -Force -Path $drawDst, $valDst | Out-Null
 Copy-Item -Force (Join-Path $drawSrc '*') $drawDst
 Copy-Item -Force (Join-Path $valSrc '*') $valDst
@@ -37,7 +48,7 @@ function Set-NamedColor([string]$XmlPath, [string]$Name, [string]$Hex) {
     }
 }
 
-$colors = Join-Path $Mojo 'app_pojavlauncher\src\main\res\values\colors.xml'
+$colors = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/values/colors.xml'
 Set-NamedColor $colors 'background_app' '#142810'
 Set-NamedColor $colors 'background_status_bar' '#1C3A18'
 Set-NamedColor $colors 'background_bottom_bar' '#1A3216'
@@ -47,11 +58,11 @@ Set-NamedColor $colors 'primary_text' '#F4FFE8'
 Set-NamedColor $colors 'secondary_text' '#B5D99A'
 Set-NamedColor $colors 'icon_outline_color' '#F4FFE8'
 Set-NamedColor $colors 'divider' '#2F6B28'
-$iconBg = Join-Path $Mojo 'app_pojavlauncher\src\main\res\values\ic_launcher_background.xml'
+$iconBg = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/values/ic_launcher_background.xml'
 Set-NamedColor $iconBg 'ic_launcher_background' '#1A3D14'
 Write-Host 'Applied melon palette to launcher colors'
 
-$strings = Join-Path $Mojo 'app_pojavlauncher\src\main\res\values\strings.xml'
+$strings = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/values/strings.xml'
 if (Test-Path $strings) {
     $st = Get-Content -Path $strings -Raw
     $st2 = [regex]::Replace($st, '<string name="app_short_name">[^<]*</string>', '<string name="app_short_name">McMessenger</string>')
@@ -61,7 +72,7 @@ if (Test-Path $strings) {
     }
 }
 
-$adaptive = Join-Path $Mojo 'app_pojavlauncher\src\main\res\mipmap-anydpi-v26\ic_launcher.xml'
+$adaptive = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'
 if (Test-Path $adaptive) {
     $ad = Get-Content -Path $adaptive -Raw
     $ad2 = $ad.Replace('@mipmap/ic_launcher_foreground', '@drawable/mcmessenger_melon_block')
@@ -70,7 +81,7 @@ if (Test-Path $adaptive) {
         Write-Host 'Adaptive icon uses melon block'
     }
 }
-$adaptiveRound = Join-Path $Mojo 'app_pojavlauncher\src\main\res\mipmap-anydpi-v26\ic_launcher_round.xml'
+$adaptiveRound = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml'
 if (Test-Path $adaptiveRound) {
     $ad = Get-Content -Path $adaptiveRound -Raw
     $ad2 = $ad.Replace('@mipmap/ic_launcher_foreground', '@drawable/mcmessenger_melon_block')
@@ -105,8 +116,8 @@ function Patch-Once {
     Write-Host "Patched $Marker"
 }
 
-$ga = Join-Path $Mojo 'app_pojavlauncher\src\main\java\net\kdt\pojavlaunch\game\GameActivity.java'
-$gr = Join-Path $Mojo 'app_pojavlauncher\src\main\java\net\kdt\pojavlaunch\utils\jre\GameRunner.java'
+$ga = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/game/GameActivity.java'
+$gr = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/jre/GameRunner.java'
 
 Patch-Once -Path $ga -Marker 'import net.kdt.pojavlaunch.chatoverlay.ChatOverlayController;' `
     -Needle 'import net.kdt.pojavlaunch.game.platform.Platform;' `
