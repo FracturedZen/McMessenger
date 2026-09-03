@@ -11,7 +11,7 @@ if (-not (Test-Path $overlayJava)) {
     Write-Error "Overlay not applied. Run .\scripts\apply-overlay.ps1"
 }
 
-$agent = Join-Path $Root 'overlay\prebuilt\chat-only-agent.jar'
+$agent = Join-Path $Root 'overlay\prebuilt\mcmessenger-agent.jar'
 if (-not (Test-Path $agent)) {
     Write-Host "Agent jar missing — building it (needs javac / JDK 17)..."
     & (Join-Path $Root 'scripts\build-agent.ps1')

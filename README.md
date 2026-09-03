@@ -1,4 +1,4 @@
-# MC Chat Mojo (MojoLauncher fork overlay)
+# McMessenger
 
 This is a **chat-only skin** for [MojoLauncher](https://github.com/MojoLauncher/MojoLauncher) (LGPL-3.0, based on PojavLauncher). It is not a Minecraft mod. It does not steal sessions from the Play Store app.
 
@@ -26,23 +26,23 @@ Vanilla Java has no official chat-only client. This is the launcher cutting work
 
 ## GitHub
 
-Intended remote: **https://github.com/FracturedZen/mc-chat-mojo**
+Remote: **https://github.com/FracturedZen/McMessenger**
 
 ```powershell
-cd C:\Users\Z\Desktop\mc-chat-mojo
+cd C:\Users\Z\Desktop\McMessenger
 .\scripts\link-github.ps1
 ```
 
-Create the empty repo on GitHub (this PC has no `gh` CLI and no token, so the website must create it), then `git push -u origin main`.
+Create the empty repo on GitHub named **McMessenger** under **FracturedZen** (no README), then `git push -u origin main`.
 
-[Actions → Build debug APK](https://github.com/FracturedZen/mc-chat-mojo/actions) (after the first push) uploads a sideload debug APK. This Windows box has JDK 21 but **no Android SDK / Android Studio**, so the APK cannot be assembled here.
+[Actions → Build debug APK](https://github.com/FracturedZen/McMessenger/actions) (after the first push) uploads a sideload debug APK. This Windows box has JDK 21 but **no Android SDK / Android Studio**, so the APK cannot be assembled here.
 
 ## What you run (Windows)
 
 Android Studio + JDK 17 + Android SDK are required to produce an APK. Same as stock Mojo.
 
 ```powershell
-cd C:\Users\Z\Desktop\mc-chat-mojo
+cd C:\Users\Z\Desktop\McMessenger
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\clone-mojo.ps1
 .\scripts\apply-overlay.ps1
@@ -51,7 +51,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 APK lands in `mojo-src\app_pojavlauncher\build\outputs\apk\debug\`.
 
-Sideload it. Sign in (Microsoft or offline) inside the launcher, pick a version, Play. When the game boots, the **MC Chat** overlay is on top.
+Sideload it. Sign in (Microsoft or offline) inside the launcher, pick a version, Play. When the game boots, the **McMessenger** overlay is on top.
 
 To auto-join a server (so you do not need the title-screen Multiplayer button), put this in the instance's **game arguments**:
 

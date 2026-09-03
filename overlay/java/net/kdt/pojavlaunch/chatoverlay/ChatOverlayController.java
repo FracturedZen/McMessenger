@@ -85,7 +85,7 @@ public final class ChatOverlayController {
         Button sendBtn = root.findViewById(R.id.mc_chat_send);
         Button respawnNowBtn = root.findViewById(R.id.mc_chat_respawn_now);
 
-        SharedPreferences prefs = activity.getSharedPreferences("mcchat_overlay", 0);
+        SharedPreferences prefs = activity.getSharedPreferences("mcmessenger", 0);
         respawn.setAuto(prefs.getBoolean("auto_respawn", false));
         syncAutoRespawnButton();
 
@@ -104,7 +104,7 @@ public final class ChatOverlayController {
         autoRespawnBtn.setOnClickListener(v -> {
             boolean next = !respawn.isAuto();
             respawn.setAuto(next);
-            activity.getSharedPreferences("mcchat_overlay", 0).edit().putBoolean("auto_respawn", next).apply();
+            activity.getSharedPreferences("mcmessenger", 0).edit().putBoolean("auto_respawn", next).apply();
             syncAutoRespawnButton();
             addLine(new ChatMessage("system", null, next
                     ? "Auto-respawn on. On death, Respawn is pressed for you."
@@ -116,7 +116,7 @@ public final class ChatOverlayController {
             addLine(new ChatMessage("system", null, "Respawn sent."));
         });
 
-        addLine(new ChatMessage("system", null, "MC Chat overlay on. Use the game UI to join a server, then tap Cover. Or add --server HOST --port 25565 to instance game args."));
+        addLine(new ChatMessage("system", null, "McMessenger overlay on. Use the game UI to join a server, then tap Cover. Or add --server HOST --port 25565 to instance game args."));
         setCover(false);
         setStatus("Join a server, then Cover");
 

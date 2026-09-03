@@ -38,6 +38,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mc-chat-mojo-debug-apk
+          name: mcmessenger-debug-apk
           path: mojo-src/app_pojavlauncher/build/outputs/apk/**/*.apk
           if-no-files-found: error

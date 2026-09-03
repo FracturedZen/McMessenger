@@ -12,7 +12,7 @@ import java.io.File;
  * This is not an anticheat bypass; it is the same slider as Video Settings.
  */
 public final class ChatOnlyOptions {
-    private static final String TAG = "McChatOnly";
+    private static final String TAG = "McMessenger";
 
     public static void apply(File gameDir) {
         if (gameDir == null) return;

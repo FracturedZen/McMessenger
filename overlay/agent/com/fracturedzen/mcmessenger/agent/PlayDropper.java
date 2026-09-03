@@ -1,4 +1,4 @@
-package com.phonkalphabet.mcchat.agent;
+package com.fracturedzen.mcmessenger.agent;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -11,7 +11,7 @@ import java.util.Map;
 
 /**
  * Size filter for inbound frames, plus optional PERFORM_RESPAWN when the overlay
- * asks via {@code .mcchat-control} in the game directory (JVM {@code user.dir}).
+ * asks via {@code .mcmessenger-control} in the game directory (JVM {@code user.dir}).
  */
 public final class PlayDropper {
     public static final long GRACE_MS = 45_000L;
@@ -80,7 +80,7 @@ public final class PlayDropper {
         while (true) {
             try {
                 Thread.sleep(250);
-                File f = Path.of(System.getProperty("user.dir", "."), ".mcchat-control").toFile();
+                File f = Path.of(System.getProperty("user.dir", "."), ".mcmessenger-control").toFile();
                 if (!f.isFile()) continue;
                 boolean want = false;
                 String version = "";
@@ -114,9 +114,9 @@ public final class PlayDropper {
             Object channel = lastCtx.getClass().getMethod("channel").invoke(lastCtx);
             Method write = channel.getClass().getMethod("writeAndFlush", Object.class);
             write.invoke(channel, buf);
-            System.out.println("[mc-chat-only] sent PERFORM_RESPAWN client_command id=0x" + Integer.toHexString(id));
+            System.out.println("[mcmessenger] sent PERFORM_RESPAWN client_command id=0x" + Integer.toHexString(id));
         } catch (Throwable t) {
-            System.out.println("[mc-chat-only] respawn packet failed: " + t.getMessage());
+            System.out.println("[mcmessenger] respawn packet failed: " + t.getMessage());
         }
     }
 

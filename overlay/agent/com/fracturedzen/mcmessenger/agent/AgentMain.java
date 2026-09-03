@@ -1,4 +1,4 @@
-package com.phonkalphabet.mcchat.agent;
+package com.fracturedzen.mcmessenger.agent;
 
 import java.lang.instrument.Instrumentation;
 
@@ -13,6 +13,6 @@ public final class AgentMain {
     public static void premain(String args, Instrumentation inst) {
         PlayDropper.start();
         inst.addTransformer(new FireChannelReadTransformer(), true);
-        System.out.println("[mc-chat-only] javaagent installed — will drop large inbound frames after login grace");
+        System.out.println("[mcmessenger] javaagent installed — will drop large inbound frames after login grace");
     }
 }

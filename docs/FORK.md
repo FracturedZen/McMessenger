@@ -12,7 +12,7 @@ Mojo is the JVM + renderer. Capacitor cannot speak Minecraft TCP. Opening the Pl
 `scripts/apply-overlay.ps1` copies files into a local clone (`mojo-src/`) and inserts one call in `GameActivity.initLayout`:
 
 ```java
-ChatOverlayController.install(this);
+ChatOverlayController.install(this, instance.getGameDirectory());
 ```
 
 New files (ours):
@@ -36,7 +36,7 @@ applicationId "git.artdeell.mjlaunch"
 to:
 
 ```
-applicationId "com.phonkalphabet.mcchatmojo"
+applicationId "com.fracturedzen.mcmessenger"
 ```
 
 ## Re-applying after `git pull`
@@ -60,7 +60,7 @@ The overlay does not just paint over the world. Before the JVM starts we rewrite
 
 When Cover is on, the GL backbuffer is shrunk to 16×16 so we are not shading a full-screen frame nobody sees.
 
-After a 45s login grace, a **javaagent** (`chat-only-agent.jar`) drops inbound Netty **ByteBuf** frames larger than 4 KiB. Chunk and light payloads are large; chat, keepalive, and teleport confirms are small and still flow. We do **not** skip keepalives, teleport confirms, or movement acks. We do **not** hide you from the tab list.
+After a 45s login grace, a **javaagent** (`mcmessenger-agent.jar`) drops inbound Netty **ByteBuf** frames larger than 4 KiB. Chunk and light payloads are large; chat, keepalive, and teleport confirms are small and still flow. We do **not** skip keepalives, teleport confirms, or movement acks. We do **not** hide you from the tab list.
 
 The agent is JVM bytecode shipped as an asset and passed as `-javaagent` to Minecraft’s JRE. It is not a Fabric/Forge mod.
 

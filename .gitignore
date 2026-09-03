@@ -10,4 +10,4 @@ local.properties
 *.iml
 Thumbs.db
 .DS_Store
-.mcchat-control
+.mcmessenger-control

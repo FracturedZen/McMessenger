@@ -26,7 +26,7 @@ Write-Host "javac: $javac"
 
 $work = Join-Path $Root 'overlay\agent\build'
 $lib = Join-Path $Root 'overlay\agent\lib'
-$outJar = Join-Path $Root 'overlay\prebuilt\chat-only-agent.jar'
+$outJar = Join-Path $Root 'overlay\prebuilt\mcmessenger-agent.jar'
 if (Test-Path $work) { Remove-Item -Recurse -Force $work }
 New-Item -ItemType Directory -Force -Path $work, $lib, (Split-Path $outJar) | Out-Null
 
@@ -39,9 +39,9 @@ if (-not (Test-Path $asmJar)) {
 $srcRoot = Join-Path $Root 'overlay\agent'
 Write-Host "Compiling chat-only javaagent..."
 & $javac --release 17 -cp $asmJar -d $work `
-    (Join-Path $srcRoot 'com\phonkalphabet\mcchat\agent\PlayDropper.java') `
-    (Join-Path $srcRoot 'com\phonkalphabet\mcchat\agent\FireChannelReadTransformer.java') `
-    (Join-Path $srcRoot 'com\phonkalphabet\mcchat\agent\AgentMain.java')
+    (Join-Path $srcRoot 'com\fracturedzen\mcmessenger\agent\PlayDropper.java') `
+    (Join-Path $srcRoot 'com\fracturedzen\mcmessenger\agent\FireChannelReadTransformer.java') `
+    (Join-Path $srcRoot 'com\fracturedzen\mcmessenger\agent\AgentMain.java')
 if ($LASTEXITCODE -ne 0) { Write-Error "javac failed" }
 
 Add-Type -AssemblyName System.IO.Compression

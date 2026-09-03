@@ -11,18 +11,18 @@ import java.io.InputStream;
 import java.util.List;
 
 /**
- * Copies {@code assets/chat-only-agent.jar} into app files and appends {@code -javaagent}.
+ * Copies {@code assets/mcmessenger-agent.jar} into app files and appends {@code -javaagent}.
  * That agent runs inside the <em>game</em> JVM (not ART) and drops large inbound Netty
  * frames after login — chunks/light — while leaving small packets (chat, keepalive, teleport).
  */
 public final class ChatOnlyAgentSupport {
-    private static final String TAG = "McChatOnly";
-    private static final String ASSET = "chat-only-agent.jar";
+    private static final String TAG = "McMessenger";
+    private static final String ASSET = "mcmessenger-agent.jar";
 
     public static void appendJavaAgent(Context context, List<String> javaArgList) {
         File jar = extract(context);
         if (jar == null || !jar.isFile() || jar.length() < 32) {
-            Log.w(TAG, "chat-only-agent.jar missing — large play packets will not be dropped. Run scripts/build-agent.ps1");
+            Log.w(TAG, "mcmessenger-agent.jar missing — large play packets will not be dropped. Run scripts/build-agent.ps1");
             return;
         }
         javaArgList.add("-javaagent:" + jar.getAbsolutePath());

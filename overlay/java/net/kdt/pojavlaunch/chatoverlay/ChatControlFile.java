@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
  * game is the instance directory; we write the same file under DIR_GAME_HOME.
  */
 public final class ChatControlFile {
-    public static final String NAME = ".mcchat-control";
+    public static final String NAME = ".mcmessenger-control";
 
     private static File dir;
 

@@ -10,7 +10,7 @@ $javaSrc = Join-Path $Root 'overlay\java\net\kdt\pojavlaunch\chatoverlay'
 $javaDst = Join-Path $Mojo 'app_pojavlauncher\src\main\java\net\kdt\pojavlaunch\chatoverlay'
 $resSrc = Join-Path $Root 'overlay\res\layout'
 $resDst = Join-Path $Mojo 'app_pojavlauncher\src\main\res\layout'
-$agentJar = Join-Path $Root 'overlay\prebuilt\chat-only-agent.jar'
+$agentJar = Join-Path $Root 'overlay\prebuilt\mcmessenger-agent.jar'
 $assetsDst = Join-Path $Mojo 'app_pojavlauncher\src\main\assets'
 
 New-Item -ItemType Directory -Force -Path $javaDst | Out-Null
@@ -21,10 +21,10 @@ Write-Host 'Copied overlay Java + layouts'
 
 if (Test-Path $agentJar) {
     New-Item -ItemType Directory -Force -Path $assetsDst | Out-Null
-    Copy-Item -Force $agentJar (Join-Path $assetsDst 'chat-only-agent.jar')
-    Write-Host 'Copied chat-only-agent.jar into assets'
+    Copy-Item -Force $agentJar (Join-Path $assetsDst 'mcmessenger-agent.jar')
+    Write-Host 'Copied mcmessenger-agent.jar into assets'
 } else {
-    Write-Host 'WARNING: overlay\prebuilt\chat-only-agent.jar missing. Run .\scripts\build-agent.ps1'
+    Write-Host 'WARNING: overlay\prebuilt\mcmessenger-agent.jar missing. Run .\scripts\build-agent.ps1'
 }
 
 function Patch-Once {

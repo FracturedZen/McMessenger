@@ -15,7 +15,7 @@ import git.artdeell.mojoexec.MojoExec;
  * meshing a full-screen frame we never show.
  */
 public final class ChatOnlySurface {
-    private static final String TAG = "McChatOnly";
+    private static final String TAG = "McMessenger";
     private static int savedW;
     private static int savedH;
     private static boolean shrunk;

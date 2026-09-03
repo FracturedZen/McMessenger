@@ -1,4 +1,4 @@
-package com.phonkalphabet.mcchat.agent;
+package com.fracturedzen.mcmessenger.agent;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -15,7 +15,7 @@ import java.security.ProtectionDomain;
  */
 public final class FireChannelReadTransformer implements ClassFileTransformer, Opcodes {
     private static final String TARGET = "io/netty/channel/AbstractChannelHandlerContext";
-    private static final String DROPPER = "com/phonkalphabet/mcchat/agent/PlayDropper";
+    private static final String DROPPER = "com/fracturedzen/mcmessenger/agent/PlayDropper";
 
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
