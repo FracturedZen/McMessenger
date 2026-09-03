@@ -261,7 +261,7 @@ Patch-Once -Path $gr -Marker 'MC_SERVER_ARGS' `
     -Insert @"
         List<String> launchArgs = getMoJsonClientArgs(account, versionInfo, gamedir);
         // MC_SERVER_ARGS
-        net.kdt.pojavlaunch.chatoverlay.ChatServerLaunch.appendClientArgs(activity, launchArgs);
+        net.kdt.pojavlaunch.chatoverlay.ChatServerLaunch.appendClientArgs(activity, launchArgs, versionId);
 "@
 
 $toolsJava = Join-RepoPath $Mojo 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/Tools.java'

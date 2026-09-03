@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="@drawable/mcmessenger_input"
-            android:hint="address  (hypixel.net)"
+            android:hint="simpcraft.com"
             android:importantForAutofill="no"
             android:inputType="textUri"
             android:padding="10dp"
@@ -41,7 +41,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:background="@drawable/mcmessenger_input"
-            android:hint="25565"
+            android:hint="auto"
             android:importantForAutofill="no"
             android:inputType="number"
             android:padding="10dp"
@@ -54,7 +54,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingTop="4dp"
-        android:text="Connect joins this server. You never use the Minecraft multiplayer menu."
+        android:text="Leave port blank unless you were told a number. PC does the same."
         android:textColor="#B5D99A"
         android:textSize="11sp" />
 </LinearLayout>

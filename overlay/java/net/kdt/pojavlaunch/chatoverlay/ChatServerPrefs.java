@@ -22,13 +22,34 @@ public final class ChatServerPrefs {
     }
 
     public static int port(Context c) {
+        Integer p = explicitPort(c);
+        return p == null ? 25565 : p;
+    }
+
+    /** Null when the user left port blank — same as PC (SRV / default). */
+    public static Integer explicitPort(Context c) {
+        String raw = prefs(c).getString("server_port", "");
+        if (raw == null) return null;
+        raw = raw.trim();
+        if (raw.isEmpty()) return null;
         try {
-            int p = Integer.parseInt(prefs(c).getString("server_port", "25565").trim());
-            if (p < 1 || p > 65535) return 25565;
+            int p = Integer.parseInt(raw);
+            if (p < 1 || p > 65535) return null;
             return p;
         } catch (Exception e) {
-            return 25565;
+            return null;
         }
+    }
+
+    public static String queueCmd(Context c) {
+        String q = prefs(c).getString("queue_cmd", "/queue");
+        if (q == null || q.trim().isEmpty()) return "/queue";
+        return q.trim();
+    }
+
+    public static void saveQueueCmd(Context c, String cmd) {
+        if (cmd == null || cmd.trim().isEmpty()) return;
+        prefs(c).edit().putString("queue_cmd", cmd.trim()).apply();
     }
 
     public static void save(Context c, String hostRaw, String portRaw) {
@@ -42,7 +63,6 @@ public final class ChatServerPrefs {
                 host = host.substring(0, colon);
             }
         }
-        if (port.isEmpty()) port = "25565";
         prefs(c).edit().putString("server_host", host).putString("server_port", port).apply();
     }
 
@@ -62,7 +82,8 @@ public final class ChatServerPrefs {
             h.setText(host(c));
         }
         if (p != null && (p.getText() == null || p.getText().length() == 0)) {
-            p.setText(String.valueOf(port(c)));
+            Integer ep = explicitPort(c);
+            p.setText(ep == null ? "" : String.valueOf(ep));
         }
     }
 }

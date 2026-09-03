@@ -12,6 +12,9 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
 
 import net.kdt.pojavlaunch.Tools;
 import net.kdt.pojavlaunch.authenticator.accounts.Account;
@@ -117,15 +120,25 @@ public final class ChatOverlayController {
             setStatus("Respawning…");
             addLine(new ChatMessage("system", null, "Respawn sent."));
         });
+        Button queueBtn = root.findViewById(R.id.mc_chat_queue);
+        if (queueBtn != null) {
+            queueBtn.setOnClickListener(v -> sendQueueCmd());
+            queueBtn.setOnLongClickListener(v -> {
+                editQueueCmd();
+                return true;
+            });
+        }
 
         String host = ChatServerPrefs.host(activity);
-        int port = ChatServerPrefs.port(activity);
+        Integer port = ChatServerPrefs.explicitPort(activity);
         if (host.isEmpty()) {
             addLine(new ChatMessage("system", null, "No server set. Go back, type an address, then Connect."));
             setStatus("No server");
         } else {
-            addLine(new ChatMessage("system", null, "Joining " + host + ":" + port + " — Minecraft menus stay hidden."));
-            setStatus("Joining " + host + "…");
+            String dest = port == null ? host : (host + ":" + port);
+            addLine(new ChatMessage("system", null, "Joining " + dest + " (SRV like PC if no port). Queue button sends "
+                    + ChatServerPrefs.queueCmd(activity) + " — long-press to change."));
+            setStatus("Joining " + dest + "…");
         }
         setCover(true);
         View coverBtnView = root.findViewById(R.id.mc_chat_cover);
@@ -149,11 +162,7 @@ public final class ChatOverlayController {
         if (msg != null) {
             addLine(msg);
             handleDeathLine(msg.text);
-            if ("system".equals(msg.kind) && looksOnline(msg.text)) {
-                respawn.onAlive();
-                setStatus("In world");
-                if (!cover) setCover(true);
-            }
+            markConnected(msg.text);
             return;
         }
         String detected = McVersion.fromLogLine(line);
@@ -163,12 +172,48 @@ public final class ChatOverlayController {
         }
         String low = line.toLowerCase();
         if (low.contains("connecting to")) setStatus("Connecting…");
-        if (low.contains("joined the game") || low.contains("logged in")) {
-            respawn.onAlive();
-            setStatus("In world");
-            if (!cover) setCover(true);
+        if (low.contains("failed to connect") || low.contains("connection refused")
+                || low.contains("timed out") || low.contains("unknown host")) {
+            setStatus("Join failed");
+            addLine(new ChatMessage("system", null, line));
+        }
+        if (low.contains("joined the game") || low.contains("logged in")
+                || low.contains("multiplayer") && low.contains("joined")) {
+            markConnected(line);
         }
         handleDeathLine(line);
+    }
+
+    private void markConnected(String text) {
+        respawn.onAlive();
+        String t = text == null ? "" : text.toLowerCase();
+        if (t.contains("queue")) setStatus("In queue");
+        else setStatus("Connected");
+        if (!cover) setCover(true);
+    }
+
+    private void sendQueueCmd() {
+        String cmd = ChatServerPrefs.queueCmd(activity);
+        if (!sender.send(cmd)) return;
+        addLine(new ChatMessage("you", "You", cmd));
+        setStatus("Sent " + cmd);
+    }
+
+    private void editQueueCmd() {
+        final EditText box = new EditText(activity);
+        box.setText(ChatServerPrefs.queueCmd(activity));
+        box.setHint("/queue");
+        box.setSelectAllOnFocus(true);
+        new AlertDialog.Builder(activity)
+                .setTitle("Queue / join command")
+                .setMessage("Sent as chat, same as typing it. Long-press Queue to change.")
+                .setView(box)
+                .setPositiveButton(android.R.string.ok, (d, w) -> {
+                    ChatServerPrefs.saveQueueCmd(activity, box.getText().toString());
+                    Toast.makeText(activity, "Queue button: " + ChatServerPrefs.queueCmd(activity), Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private void handleDeathLine(String text) {
