@@ -24,6 +24,8 @@ The client still **joins play state** (keepalive + teleport confirm or the serve
 
 Vanilla Java has no official chat-only client. This is the launcher cutting work, not a game mod.
 
+Aimed at **1.8 through current** (and whatever else Mojo will boot). Chat length, respawn packet ids, and log formats switch by version. Unknown versions skip the respawn *packet* and still use the death-screen Enter key.
+
 ## GitHub
 
 Remote: **https://github.com/FracturedZen/McMessenger**

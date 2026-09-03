@@ -62,7 +62,9 @@ public final class ChatOverlayController {
             // Overlay still works without a name; death detection is looser.
         }
         if (activity.getIntent() != null && activity.getIntent().getExtras() != null) {
-            c.respawn.setVersion(activity.getIntent().getExtras().getString(GameActivity.INTENT_LAUNCH_VERSION, ""));
+            String ver = McVersion.extract(activity.getIntent().getExtras().getString(GameActivity.INTENT_LAUNCH_VERSION, ""));
+            c.respawn.setVersion(ver);
+            c.sender.setVersion(ver);
         }
         c.attach();
     }
@@ -142,6 +144,11 @@ public final class ChatOverlayController {
                 if (!cover) setCover(true);
             }
             return;
+        }
+        String detected = McVersion.fromLogLine(line);
+        if (!detected.isEmpty()) {
+            respawn.setVersion(detected);
+            sender.setVersion(detected);
         }
         String low = line.toLowerCase();
         if (low.contains("connecting to")) setStatus("Connecting…");

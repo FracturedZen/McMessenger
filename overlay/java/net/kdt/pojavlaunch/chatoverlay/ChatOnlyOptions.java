@@ -7,9 +7,8 @@ import net.kdt.pojavlaunch.utils.MCOptionUtils;
 import java.io.File;
 
 /**
- * Force vanilla options that cut work the server and client would spend on the world.
- * {@code renderDistance} is sent as client view-distance, so the server ships fewer chunks.
- * This is not an anticheat bypass; it is the same slider as Video Settings.
+ * Cheap-client options. Unknown keys are ignored by older GameOptions parsers.
+ * {@code renderDistance:2} is 2 chunks on 1.8+ and "Short" on 1.6–1.7 — both small.
  */
 public final class ChatOnlyOptions {
     private static final String TAG = "McMessenger";
@@ -18,22 +17,23 @@ public final class ChatOnlyOptions {
         if (gameDir == null) return;
         try {
             MCOptionUtils.load(gameDir.getAbsolutePath());
-            // View-distance 2 is the vanilla minimum on modern Java. Server then sends a 5x5 chunk window
-            // instead of a 25x25 (RD 12) — the real packet cut, not a dropped TCP stream.
             set("renderDistance", "2");
             set("simulationDistance", "2");
-            set("entityDistanceScaling", "0.0");
+            set("entityDistanceScaling", "0.5");
             set("graphicsMode", "0");
+            set("fancyGraphics", "false");
             set("particles", "2");
-            set("ao", "false");
+            set("ao", "0");
             set("clouds", "false");
             set("entityShadows", "false");
             set("biomeBlendRadius", "0");
             set("enableVsync", "false");
+            set("vsync", "false");
             set("maxFps", "10");
+            set("fpsLimit", "10");
+            set("limitFramerate", "10");
             set("fullscreen", "false");
             set("bobView", "false");
-            set("fancyGraphics", "false");
             set("useVbo", "true");
             set("mipmapLevels", "0");
             set("forceUnicodeFont", "false");
@@ -51,7 +51,7 @@ public final class ChatOnlyOptions {
             set("soundCategory_ambient", "0.0");
             set("soundCategory_voice", "0.0");
             MCOptionUtils.save();
-            Log.i(TAG, "Applied chat-only options.txt (RD=2, no audio, cheap graphics)");
+            Log.i(TAG, "Applied chat-only options.txt (small view-distance, muted audio)");
         } catch (Exception e) {
             Log.w(TAG, "Could not apply chat-only options", e);
         }

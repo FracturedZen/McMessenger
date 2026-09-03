@@ -5,50 +5,72 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.lang.reflect.Method;
-import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Size filter for inbound frames, plus optional PERFORM_RESPAWN when the overlay
- * asks via {@code .mcmessenger-control} in the game directory (JVM {@code user.dir}).
+ * Inbound size filter + optional PERFORM_RESPAWN. Packet ids are version-specific;
+ * unknown versions skip the packet and the overlay still uses Enter on the death screen.
  */
 public final class PlayDropper {
-    public static final long GRACE_MS = 45_000L;
-    public static final int LARGE_BYTES = 4096;
+    /** Join Game / command tree / dimension codec can be huge. Do not drop during login. */
+    public static final long GRACE_MS = 60_000L;
+    /**
+     * 1.19+ signed chat can be several KB. Chunks/light are typically much larger.
+     * 16 KiB keeps chat; still drops bulk terrain.
+     */
+    public static final int LARGE_BYTES = 16384;
+
+    private static final Pattern VER = Pattern.compile("(?:^|[^0-9])(1\\.\\d{1,2}(?:\\.\\d{1,2})?|26\\.\\d+(?:\\.\\d+)?)(?:[^0-9]|$)");
 
     private static volatile long startMs;
     private static volatile Object lastCtx;
     private static volatile long lastRespawnMs;
 
-    /** Play-state serverbound client_command ids. Wrong id can desync — unknown versions skip the packet and rely on Enter. */
-    private static final Map<String, Integer> CLIENT_COMMAND_ID = new HashMap<String, Integer>();
+    /** Play serverbound client_command / Client Status. Action 0 = PERFORM_RESPAWN on every version here. */
+    private static final Map<String, Integer> CLIENT_COMMAND_ID = new LinkedHashMap<String, Integer>();
     static {
+        putFamily("1.7", 0x16, "1.7.10");
+        putFamily("1.8", 0x16, "1.8.8", "1.8.9");
+        putFamily("1.9", 0x03, "1.9.4");
+        putFamily("1.10", 0x03, "1.10.2");
+        putFamily("1.11", 0x03, "1.11.2");
+        putFamily("1.12", 0x03, "1.12.1", "1.12.2");
+        putFamily("1.13", 0x03, "1.13.1", "1.13.2");
+        putFamily("1.14", 0x04, "1.14.1", "1.14.2", "1.14.3", "1.14.4");
+        putFamily("1.15", 0x04, "1.15.1", "1.15.2");
+        putFamily("1.16", 0x04, "1.16.1", "1.16.2", "1.16.3", "1.16.4", "1.16.5");
+        putFamily("1.17", 0x04, "1.17.1");
+        putFamily("1.18", 0x04, "1.18.1", "1.18.2");
+        CLIENT_COMMAND_ID.put("1.19", 0x06);
+        CLIENT_COMMAND_ID.put("1.19.1", 0x07);
+        CLIENT_COMMAND_ID.put("1.19.2", 0x07);
+        CLIENT_COMMAND_ID.put("1.19.3", 0x06);
         CLIENT_COMMAND_ID.put("1.19.4", 0x07);
-        CLIENT_COMMAND_ID.put("1.20", 0x07);
-        CLIENT_COMMAND_ID.put("1.20.1", 0x07);
+        putFamily("1.20", 0x07, "1.20.1");
         CLIENT_COMMAND_ID.put("1.20.2", 0x08);
         CLIENT_COMMAND_ID.put("1.20.3", 0x09);
         CLIENT_COMMAND_ID.put("1.20.4", 0x09);
         CLIENT_COMMAND_ID.put("1.20.5", 0x0A);
         CLIENT_COMMAND_ID.put("1.20.6", 0x0A);
-        CLIENT_COMMAND_ID.put("1.21", 0x0A);
-        CLIENT_COMMAND_ID.put("1.21.1", 0x0A);
-        CLIENT_COMMAND_ID.put("1.21.2", 0x0C);
-        CLIENT_COMMAND_ID.put("1.21.3", 0x0C);
-        CLIENT_COMMAND_ID.put("1.21.4", 0x0C);
-        CLIENT_COMMAND_ID.put("1.21.5", 0x0C);
-        CLIENT_COMMAND_ID.put("1.21.6", 0x0C);
-        CLIENT_COMMAND_ID.put("1.21.7", 0x0C);
-        CLIENT_COMMAND_ID.put("1.21.8", 0x0C);
-        CLIENT_COMMAND_ID.put("1.21.9", 0x0C);
-        CLIENT_COMMAND_ID.put("1.21.10", 0x0C);
-        CLIENT_COMMAND_ID.put("1.21.11", 0x0C);
+        CLIENT_COMMAND_ID.put("1.21", 0x09);
+        CLIENT_COMMAND_ID.put("1.21.1", 0x09);
+        putFamily("1.21.2", 0x0C,
+                "1.21.3", "1.21.4", "1.21.5", "1.21.6", "1.21.7", "1.21.8",
+                "1.21.9", "1.21.10", "1.21.11");
+        CLIENT_COMMAND_ID.put("26.1", 0x0C);
+    }
+
+    private static void putFamily(String base, int id, String... extra) {
+        CLIENT_COMMAND_ID.put(base, id);
+        for (String e : extra) CLIENT_COMMAND_ID.put(e, id);
     }
 
     public static void start() {
         startMs = System.currentTimeMillis();
-        Thread t = new Thread(PlayDropper::pollLoop, "mc-chat-respawn");
+        Thread t = new Thread(PlayDropper::pollLoop, "mcmessenger-respawn");
         t.setDaemon(true);
         t.start();
     }
@@ -80,7 +102,7 @@ public final class PlayDropper {
         while (true) {
             try {
                 Thread.sleep(250);
-                File f = Path.of(System.getProperty("user.dir", "."), ".mcmessenger-control").toFile();
+                File f = new File(System.getProperty("user.dir", "."), ".mcmessenger-control");
                 if (!f.isFile()) continue;
                 boolean want = false;
                 String version = "";
@@ -120,19 +142,26 @@ public final class PlayDropper {
         }
     }
 
-    private static Integer clientCommandId(String version) {
-        if (version == null || version.isEmpty()) return CLIENT_COMMAND_ID.get("1.21.4");
-        if (CLIENT_COMMAND_ID.containsKey(version)) return CLIENT_COMMAND_ID.get(version);
-        for (int i = 0; i < 4; i++) {
-            int cut = version.lastIndexOf('.');
+    static Integer clientCommandId(String raw) {
+        String v = extractVersion(raw);
+        if (v.isEmpty()) return null;
+        if (CLIENT_COMMAND_ID.containsKey(v)) return CLIENT_COMMAND_ID.get(v);
+        String cur = v;
+        for (int i = 0; i < 3; i++) {
+            int cut = cur.lastIndexOf('.');
             if (cut <= 0) break;
-            version = version.substring(0, cut);
-            if (CLIENT_COMMAND_ID.containsKey(version)) return CLIENT_COMMAND_ID.get(version);
+            cur = cur.substring(0, cut);
+            if (CLIENT_COMMAND_ID.containsKey(cur)) return CLIENT_COMMAND_ID.get(cur);
         }
-        if (version.startsWith("1.21")) return 0x0C;
-        if (version.startsWith("1.20")) return 0x09;
-        if (version.startsWith("1.19")) return 0x07;
         return null;
+    }
+
+    static String extractVersion(String raw) {
+        if (raw == null || raw.isEmpty()) return "";
+        Matcher m = VER.matcher(raw);
+        String last = "";
+        while (m.find()) last = m.group(1);
+        return last;
     }
 
     private static Object unpooled(byte[] bytes) throws Exception {

@@ -82,6 +82,17 @@ Build it with JDK 17:
 .\scripts\apply-overlay.ps1
 ```
 
+## Version coverage
+
+Mojo already launches ~rd-132211 through current snapshots. McMessenger rides that:
+
+- Chat log: 1.6 `[CHAT]` through 1.19+ `[System] [CHAT]` / `[Not Secure]`.
+- Chat length: 100 characters before 1.11, 256 from 1.11.
+- `options.txt` uses both old and new keys; unknown keys are ignored.
+- Respawn packet ids are tabulated for 1.7.10–1.21.x. Unknown / snapshot versions **do not send a guessed id** (that desyncs). Enter/Space on the death screen still runs.
+- Frame drop is 16 KiB after a 60s login grace so 1.19 signed chat is not discarded.
+- The javaagent is only attached when the instance needs Java 17+ (1.18+). Older instances still get overlay, options, and Enter-respawn.
+
 ## Limits
 
 - Incoming chat depends on the client writing chat to `latestlog.txt`. Vanilla does. Some clients mute it.
