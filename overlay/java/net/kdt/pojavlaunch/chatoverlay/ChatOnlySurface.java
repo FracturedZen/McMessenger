@@ -37,12 +37,16 @@ public final class ChatOnlySurface {
         GameView view = activity.findViewById(R.id.main_game_render_view);
         if (view == null) return;
         view.setVisibility(View.VISIBLE);
-        if (shrunk && savedW > 16 && savedH > 16) {
-            apply(savedW, savedH, CallbackBridge.windowRate > 1f ? CallbackBridge.windowRate : 60f);
-        } else {
-            view.refreshSize();
-        }
         shrunk = false;
+        try {
+            view.refreshSize(true);
+        } catch (Throwable t) {
+            Log.w(TAG, "refreshSize failed", t);
+            if (savedW > 16 && savedH > 16) {
+                apply(savedW, savedH, CallbackBridge.windowRate > 1f ? CallbackBridge.windowRate : 60f);
+            }
+        }
+        Log.i(TAG, "GL surface restored");
     }
 
     private static void apply(int w, int h, float rate) {

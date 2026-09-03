@@ -3,6 +3,7 @@ package net.kdt.pojavlaunch.chatoverlay;
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,10 +46,14 @@ public final class ChatOverlayController {
     private EditText input;
     private TextView status;
     private Button autoRespawnBtn;
+    private Button gameBtn;
+    private View actionRow;
+    private View composerRow;
     private boolean cover = false;
     private boolean stickBottom = true;
     private boolean leaveDialogOpen = false;
     private String selfName = "";
+    private String lastProgress = "";
 
     private ChatOverlayController(Activity activity) {
         this.activity = activity;
@@ -89,6 +94,9 @@ public final class ChatOverlayController {
         input = root.findViewById(R.id.mc_chat_input);
         status = root.findViewById(R.id.mc_chat_status);
         autoRespawnBtn = root.findViewById(R.id.mc_chat_autorespawn);
+        gameBtn = root.findViewById(R.id.mc_chat_game);
+        actionRow = root.findViewById(R.id.mc_chat_actions);
+        composerRow = root.findViewById(R.id.mc_chat_composer);
         Button sendBtn = root.findViewById(R.id.mc_chat_send);
         Button respawnNowBtn = root.findViewById(R.id.mc_chat_respawn_now);
 
@@ -110,6 +118,7 @@ public final class ChatOverlayController {
         });
         View leaveBtn = root.findViewById(R.id.mc_chat_leave);
         if (leaveBtn != null) leaveBtn.setOnClickListener(v -> leaveToMenu());
+        if (gameBtn != null) gameBtn.setOnClickListener(v -> setCover(!cover));
         autoRespawnBtn.setOnClickListener(v -> {
             boolean next = !respawn.isAuto();
             respawn.setAuto(next);
@@ -142,7 +151,7 @@ public final class ChatOverlayController {
             String dest = port == null ? host : (host + ":" + port);
             addLine(new ChatMessage("system", null, "Joining " + dest + " (SRV like PC if no port). Queue button sends "
                     + ChatServerPrefs.queueCmd(activity) + " — long-press to change."));
-            addLine(new ChatMessage("system", null, "Menu or the phone Back button returns to the launcher."));
+            addLine(new ChatMessage("system", null, "Menu or Back returns to the launcher. If it sits on Connected with no chat, tap Game to see the Minecraft screen (resource pack / queue / click-to-join)."));
             setStatus("Joining " + dest + "…");
         }
         setCover(true);
@@ -174,14 +183,18 @@ public final class ChatOverlayController {
         String low = line.toLowerCase();
         if (low.contains("connecting to")) setStatus("Connecting…");
         if (low.contains("failed to connect") || low.contains("connection refused")
-                || low.contains("timed out") || low.contains("unknown host")) {
+                || low.contains("timed out") || low.contains("unknown host")
+                || low.contains("unable to connect")) {
             setStatus("Join failed");
-            addLine(new ChatMessage("system", null, line));
+        }
+        if (low.contains("resource pack") || low.contains("resourcepack")) {
+            setStatus("Resource pack — tap Game");
         }
         if (low.contains("joined the game") || low.contains("logged in")
-                || low.contains("multiplayer") && low.contains("joined")) {
+                || (low.contains("multiplayer") && low.contains("joined"))) {
             markConnected(line);
         }
+        maybeProgress(line);
         handleDeathLine(line);
     }
 
@@ -190,7 +203,29 @@ public final class ChatOverlayController {
         String t = text == null ? "" : text.toLowerCase();
         if (t.contains("queue")) setStatus("In queue");
         else setStatus("Connected");
-        if (!cover) setCover(true);
+    }
+
+    private void maybeProgress(String line) {
+        if (line == null) return;
+        String low = line.toLowerCase();
+        if (!looksProgress(low)) return;
+        String clip = line.length() > 240 ? line.substring(0, 240) : line;
+        if (clip.equals(lastProgress)) return;
+        lastProgress = clip;
+        addLine(new ChatMessage("system", null, clip));
+    }
+
+    private static boolean looksProgress(String low) {
+        return low.contains("connecting") || low.contains("connected to")
+                || low.contains("logged in")
+                || low.contains("resource pack") || low.contains("resourcepack")
+                || low.contains("downloading") || low.contains("disconnect")
+                || low.contains("timed out") || low.contains("kicked")
+                || low.contains("queue") || low.contains("authenticat")
+                || low.contains("failed to connect") || low.contains("connection refused")
+                || low.contains("unknown host") || low.contains("unable to connect")
+                || low.contains("lost connection") || low.contains("connection lost")
+                || low.contains("server brand") || low.contains("transferring");
     }
 
     private void sendQueueCmd() {
@@ -267,10 +302,21 @@ public final class ChatOverlayController {
 
     private void setCover(boolean on) {
         cover = on;
+        ViewGroup.LayoutParams lp = root.getLayoutParams();
+        if (lp instanceof FrameLayout.LayoutParams) {
+            FrameLayout.LayoutParams fl = (FrameLayout.LayoutParams) lp;
+            fl.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            fl.height = on ? ViewGroup.LayoutParams.MATCH_PARENT : ViewGroup.LayoutParams.WRAP_CONTENT;
+            fl.gravity = Gravity.TOP;
+            root.setLayoutParams(fl);
+        }
         if (on) root.setBackgroundResource(R.drawable.mcmessenger_app_bg);
-        else root.setBackgroundColor(Color.TRANSPARENT);
+        else root.setBackgroundColor(Color.parseColor("#E0142810"));
         root.setClickable(on);
-        scroller.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (scroller != null) scroller.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (actionRow != null) actionRow.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (composerRow != null) composerRow.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (gameBtn != null) gameBtn.setText(on ? "Game" : "Chat");
         hideStockControls(on);
         if (on) ChatOnlySurface.shrink(activity);
         else ChatOnlySurface.restore(activity);
@@ -294,6 +340,10 @@ public final class ChatOverlayController {
     public static boolean onSystemBack() {
         ChatOverlayController c = sActive != null ? sActive.get() : null;
         if (c == null) return false;
+        if (!c.cover) {
+            c.activity.runOnUiThread(() -> c.setCover(true));
+            return true;
+        }
         c.leaveToMenu();
         return true;
     }
