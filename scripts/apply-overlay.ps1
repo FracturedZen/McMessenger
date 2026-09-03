@@ -68,14 +68,28 @@ Get-ChildItem $resRoot -Directory | Where-Object { $_.Name -like 'values*' } | F
     $sf = Join-Path $_.FullName 'strings.xml'
     if (-not (Test-Path $sf)) { return }
     $st = Get-Content -Path $sf -Raw
-    $st2 = [regex]::Replace($st, '<string name="app_short_name">[^<]*</string>', '<string name="app_short_name">McMessenger</string>')
-    $st2 = [regex]::Replace($st2, '<string name="mcl_tab_wiki">[^<]*</string>', '<string name="mcl_tab_wiki">Credits</string>')
-    $st2 = [regex]::Replace($st2, '<string name="mcl_button_social_media">[^<]*</string>', '<string name="mcl_button_social_media">GitHub</string>')
+    $st2 = $st
+    $named = @{
+        'app_short_name' = 'McMessenger'
+        'mcl_tab_wiki' = 'Credits'
+        'mcl_button_social_media' = 'GitHub'
+        'lazy_service_default_title' = 'McMessenger'
+        'modpack_install_notification_title' = 'McMessenger'
+        'notif_channel_name' = 'McMessenger'
+        'error_fatal' = 'McMessenger has unexpectedly crashed'
+        'storage_required' = 'McMessenger requires external storage to be attached. Please reconnect it and restart the app.'
+        'notification_permission_dialog_text' = 'McMessenger needs notification permission so game downloads can continue when you leave the app.'
+    }
+    foreach ($name in $named.Keys) {
+        $st2 = [regex]::Replace($st2, "<string name=`"$name`"[^>]*>[^<]*</string>", "<string name=`"$name`">$($named[$name])</string>")
+    }
     $st2 = [regex]::Replace($st2, '<string name="social_media_invite"[^>]*>[^<]*</string>', '<string name="social_media_invite" translatable="false">https://github.com/FracturedZen/McMessenger</string>')
     $st2 = $st2.Replace('MJLauncher', 'McMessenger').Replace('MojoLauncher', 'McMessenger').Replace('PojavLauncher', 'McMessenger')
-    $st2 = $st2.Replace('MJ Foreground Service', 'McMessenger')
     $st2 = $st2.Replace('https://mojolauncher.ru', 'https://github.com/FracturedZen/McMessenger')
     $st2 = $st2.Replace('https://t.me/MojoLauncher', 'https://github.com/FracturedZen/McMessenger')
+    $st2 = [regex]::Replace($st2, '(>[^<]*?)\bMJ\b', '${1}McMessenger')
+    $st2 = [regex]::Replace($st2, '(>[^<]*?)\bMojo\b', '${1}McMessenger')
+    $st2 = [regex]::Replace($st2, '(>[^<]*?)\bPojav\b', '${1}McMessenger')
     if ($st2 -ne $st) {
         Set-Content -Path $sf -Value $st2 -NoNewline
     }
